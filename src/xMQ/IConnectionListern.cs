@@ -7,10 +7,12 @@ namespace xMQ
 {
     internal interface IController
     {
-        void OnMessage(PairSocket remote, Envelope envelop);
+        void OnMessage(ISocket remote, byte[] data);
 
-        void OnDisconnect(PairSocket remote);
+        void OnDisconnect(ISocket remote);
 
-        void OnConnected(PairSocket remote);
+        void OnConnected(ISocket remote);
+
+        void OnError(ISocket remote);
     }
 }

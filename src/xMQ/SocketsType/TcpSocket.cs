@@ -21,16 +21,14 @@ namespace xMQ.SocketsType
 
         public Uri UriAddress { get; }
 
-        private Dictionary<Socket, PairSocket> WrappedSocketsMap { get; set; }
-
         public IController ConnectionController { get; }
+        internal Dictionary<Socket, ISocket> MappedInstance { get; }
 
         public TcpSocket()
         {
             resetEvent = new ManualResetEvent(false);
             clients = new List<Socket>();
-            WrappedSocketsMap = new Dictionary<Socket, PairSocket>();
-
+            MappedInstance = new Dictionary<Socket, ISocket>();
         }
 
         public TcpSocket(Socket _socket)
@@ -103,94 +101,20 @@ namespace xMQ.SocketsType
                 {
                     var clientSocket = socket.Accept();
                     var tcpClient = new TcpSocket(clientSocket);
-                    var pairSocket = PairSocket.Wrapper(tcpClient);
 
-                    WrappedSocketsMap[clientSocket] = pairSocket;
+                    MappedInstance[clientSocket] = tcpClient;
+
+                    ConnectionController?.OnConnected(tcpClient);
 
                     clients.Add(clientSocket);
                     resetEvent.Set();
 
-                    ConnectionController?.OnConnected(pairSocket);
                 }
                 else if (socket.Poll(10, SelectMode.SelectError))
                 {
+                    ConnectionController?.OnError(this);
                     break;
                 }
-            }
-        }
-
-        public bool Send(Message msg)
-        {
-            try
-            {
-                var originalEnvelop = msg.Envelope;
-                originalEnvelop.Move(0);
-                var command = originalEnvelop.ReadNext<byte>();
-
-                var isReply = command == RequestCommand.CODE;
-
-                var envelopToSend = new Envelope(msg);
-
-                if (isReply)
-                {
-                    var msgId = originalEnvelop.ReadNext<uint>();
-
-                    envelopToSend.Append(ReplyCommand.CODE);
-                    envelopToSend.Append(msgId);
-                }
-                else
-                {
-                    envelopToSend.Append(NoneCommand.CODE);
-                }
-
-                socket.Send(envelopToSend.ToByteArray());
-
-                return true;
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-        }
-
-        public Message Request(Message msg, int millisecondsTimeout = -1)
-        {
-            var envelop = new Envelope(msg);
-            envelop.Append(RequestCommand.CODE);
-
-            var msgId = GenerateStoredAwaiter();
-            var responseAwaiter = StoredResponses[msgId];
-
-            envelop.Append(msgId);
-
-            bool success = false;
-
-            try
-            {
-                socket.Send(envelop.ToByteArray());
-                success = responseAwaiter.Signal.Wait(millisecondsTimeout);
-            }
-            catch (Exception ex)
-            {
-
-            }
-
-            if (success)
-            {
-                var responseEnvelop = responseAwaiter.Data;
-                var dataEnvelop = responseEnvelop.GetMessage();
-                dataEnvelop.Success = true;
-
-                StoredResponses.Remove(msgId);
-                return dataEnvelop;
-
-            }
-            else
-            {
-                var errorMsg = new Message();
-                errorMsg.Success = false;
-
-                return errorMsg;
             }
         }
 
@@ -209,19 +133,17 @@ namespace xMQ.SocketsType
                     var socketSpeaker = socketSelector[i];
 
                     var bytes = ReceiveBytes(socketSpeaker, 1);
-
-                    var msg = new Envelope(bytes);
-                    if (msg.Length > 0)
+                    if (bytes.Length > 0)
                     {
-                        ConnectionController?.OnMessage(WrappedSocketsMap[socketSpeaker], msg);
+                        ConnectionController?.OnMessage(MappedInstance[socketSpeaker], bytes);
                     }
                     else
                     {
                         //Notify Disconnect
                         socketSpeaker.Close();
-                        ConnectionController.OnDisconnect(WrappedSocketsMap[socketSpeaker]);
+                        ConnectionController.OnDisconnect(MappedInstance[socketSpeaker]);
                         clients.Remove(socketSpeaker);
-                        WrappedSocketsMap.Remove(socketSpeaker);
+                        MappedInstance.Remove(socketSpeaker);
                     }
                 }
             }
@@ -231,10 +153,9 @@ namespace xMQ.SocketsType
                 if (socket.Poll(-1, SelectMode.SelectRead))
                 {
                     var bytes = ReceiveBytes(socket, 100);
-                    var msg = new Envelope(bytes);
-                    if (msg.Length > 0)
+                    if (bytes.Length > 0)
                     {
-                        ConnectionController?.OnMessage(null, msg);
+                        ConnectionController?.OnMessage(null, bytes);
                     }
                     else
                     {
@@ -247,7 +168,7 @@ namespace xMQ.SocketsType
             }
         }
 
-        internal static int GetLength(Socket thisSocket)
+        private int GetLength(Socket thisSocket)
         {
             try
             {
@@ -267,7 +188,7 @@ namespace xMQ.SocketsType
             }
         }
 
-        internal static byte[] ReceiveBytes(Socket thisSocket, int timeout)
+        private byte[] ReceiveBytes(Socket thisSocket, int timeout)
         {
             try
             {
@@ -289,29 +210,17 @@ namespace xMQ.SocketsType
             }
         }
 
-        public List<PairSocket> GetAllClients()
+        public bool Send(byte[] msg)
         {
-            return WrappedSocketsMap.Values.ToList();
-        }
-
-        public PairSocket GetClient<T>(T identifier)
-        {
-            var bytes = GenericBitConverter.GetBytes(identifier);
-
-            PairSocket result = null;
-            IdentitySocketsMap.TryGetValue(bytes, out result);
-
-            return result;
-        }
-
-        public Dictionary<uint, ResponseAwaiter> GetStoredResponse()
-        {
-            return StoredResponses;
-        }
-
-        public Dictionary<byte[], PairSocket> GetIdentitySocketsMap()
-        {
-            return IdentitySocketsMap;
+            try
+            {
+                socket.Send(msg);
+                return true;
+            }
+            catch (SocketException)
+            {
+                return false;
+            }
         }
     }
 }

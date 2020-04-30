@@ -11,7 +11,7 @@ namespace xMQ.Protocol
     /// </summary>
     internal class ProtocolHandler
     {
-        internal List<ProtocolCommand> SupportedProtocol { get; } = new List<ProtocolCommand>();
+        internal Dictionary<byte, ProtocolCommand> SupportedProtocol { get; } = new Dictionary<byte, ProtocolCommand>();
 
         public ProtocolHandler()
         {
@@ -20,23 +20,21 @@ namespace xMQ.Protocol
 
         private void InitSupportedProtocolHeader()
         {
-            SupportedProtocol.Add(NoneCommand.Handler);
-            SupportedProtocol.Add(IdentityCommand.Handler);
-            SupportedProtocol.Add(RequestCommand.Handler);
-            SupportedProtocol.Add(ReplyCommand.Handler);
+            SupportedProtocol.Add(NoneCommand.CODE, NoneCommand.Handler);
+            SupportedProtocol.Add(IdentityCommand.CODE, IdentityCommand.Handler);
+            SupportedProtocol.Add(IdentityResultCommand.CODE, IdentityResultCommand.Handler);
+            SupportedProtocol.Add(RequestCommand.CODE, RequestCommand.Handler);
+            SupportedProtocol.Add(ReplyCommand.CODE, ReplyCommand.Handler);
         }
 
         internal void HandleMessage(PairSocket me, PairSocket remote, Envelope envelope)
         {
-            // TODO Verificar a necessidade de performance, talvez um loop pode perder performance quando tiver muitas requisicoes
-            // TODO Talvez, ao inves de implementar uma sequencia longa de ifs, seja mais performantico e elegante realizar uma busca binaria a partir do primeiro element
-            // fazendo com que a mensagem padra (CODE = 0) seja obtida sempre com prioridade
-            for(var i = 0; i < SupportedProtocol.Count; i++)
-            {
-                var executed = SupportedProtocol[i].HandleMessage(me, remote, envelope);
-                if (executed)
-                    break;
-            }
+            envelope.Move(0);
+
+            var code = envelope.ReadNext<byte>();
+
+            if (SupportedProtocol.ContainsKey(code))
+                SupportedProtocol[code].HandleMessage(me, remote, envelope);
         }
     }
 }

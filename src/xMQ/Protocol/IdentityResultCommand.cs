@@ -6,9 +6,12 @@ using System.Threading.Tasks;
 
 namespace xMQ.Protocol
 {
-    internal class RequestCommand : ProtocolCommand
+    /// <summary>
+    /// Implementação para processamento de mensagem para identificação dos clientes
+    /// </summary>
+    internal class IdentityResultCommand : ProtocolCommand
     {
-        public const byte CODE = 3;
+        public const byte CODE = 2;
 
         private static RequestCommand _handlerInstance = null;
         public static RequestCommand Handler
@@ -22,14 +25,16 @@ namespace xMQ.Protocol
             }
         }
 
+        private enum ResultCode
+        {
+            SUCCESS = 0,
+            CONFLICT = 1
+        }
+
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {
-            var msgId = envelop.ReadNext<uint>();
-
-            me.OnMessage?.Invoke(envelop.GetMessage(), remote);
-
             return true;
         }
-    }
 
+    }
 }

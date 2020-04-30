@@ -35,32 +35,7 @@ namespace xMQ.SocketsType
             throw new NotImplementedException();
         }
 
-        public List<PairSocket> GetAllClients()
-        {
-            throw new NotImplementedException();
-        }
-
-        public PairSocket GetClient<T>(T identifier)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Dictionary<byte[], PairSocket> GetIdentitySocketsMap()
-        {
-            throw new NotImplementedException();
-        }
-
-        public Dictionary<uint, ResponseAwaiter> GetStoredResponse()
-        {
-            throw new NotImplementedException();
-        }
-
-        public Message Request(Message msg, int millisecondsTimeout = -1)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool Send(Message msg)
+        public bool Send(byte[] msg)
         {
             throw new NotImplementedException();
         }

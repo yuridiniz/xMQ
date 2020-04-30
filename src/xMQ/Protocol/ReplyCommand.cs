@@ -8,7 +8,7 @@ namespace xMQ.Protocol
 {
     internal class ReplyCommand : ProtocolCommand
     {
-        public const byte CODE = 3;
+        public const byte CODE = 4;
 
         private static ReplyCommand _handlerInstance = null;
         public static ReplyCommand Handler
@@ -24,18 +24,12 @@ namespace xMQ.Protocol
 
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {
-            var canHandler = CanHandler(CODE, envelop);
-
-            if (!canHandler)
-                return false;
-
             var msgId = envelop.ReadNext<uint>();
 
-            var storedResponseAwaiter = remote.socket.GetStoredResponse();
-            if (!storedResponseAwaiter.ContainsKey(msgId))
+            if (!remote.StoredResponses.ContainsKey(msgId))
                 return true;
 
-            var responseAwaiter = storedResponseAwaiter[msgId];
+            var responseAwaiter = remote.StoredResponses[msgId];
             responseAwaiter.Data = envelop;
             responseAwaiter.Signal.Set();
 

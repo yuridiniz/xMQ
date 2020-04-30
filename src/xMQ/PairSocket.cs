@@ -8,11 +8,14 @@ using System.Threading;
 using System.Threading.Tasks;
 using xMQ.Protocol;
 using xMQ.SocketsType;
+using xMQ.Util;
 
 namespace xMQ
 {
     public class PairSocket : IController
     {
+        private uint nextMessageId;
+
         internal ISocket socket;
 
         private ProtocolHandler protocolHandler;
@@ -26,9 +29,17 @@ namespace xMQ
         public delegate void MessageHandler(Message msg, PairSocket socket);
         public MessageHandler OnMessage;
 
+        internal Dictionary<uint, ResponseAwaiter> StoredResponses { get; }
+        internal Dictionary<byte[], PairSocket> IdentitySocketsMap { get; }
+        internal Dictionary<ISocket, PairSocket> WrappedSocketsMap { get; }
+
+
         public PairSocket()
         {
             protocolHandler = new ProtocolHandler();
+            StoredResponses = new Dictionary<uint, ResponseAwaiter>();
+            IdentitySocketsMap = new Dictionary<byte[], PairSocket>();
+            WrappedSocketsMap = new Dictionary<ISocket, PairSocket>();
         }
 
         internal PairSocket(ISocket _socket)
@@ -73,6 +84,23 @@ namespace xMQ
             }
 
             return socketConnection;
+        }
+
+        private uint GenerateStoredAwaiter()
+        {
+            uint msgId = 0;
+            var responseAwaiter = new ResponseAwaiter();
+            responseAwaiter.Signal = new ManualResetEventSlim();
+
+            lock (StoredResponses)
+            {
+                nextMessageId = nextMessageId % uint.MaxValue;
+                msgId = ++nextMessageId;
+
+                StoredResponses[msgId] = responseAwaiter;
+            }
+
+            return msgId;
         }
 
         public bool TryBind(string serverAddress)
@@ -144,15 +172,32 @@ namespace xMQ
             if (socket == null)
                 throw new NotSupportedException("There is no connection established, use the Connect() or Bind() method to initiate a connection");
 
-            try
+            var originalEnvelope = msg.Envelope;
+            var envelopeToSend = new Envelope(msg);
+
+            var isReply = false;
+            uint msgId = 0;
+            if (originalEnvelope != null)
             {
-                socket.Send(msg);
-                return true;
+                originalEnvelope.Move(0);
+                var command = originalEnvelope.ReadNext<byte>();
+
+                isReply = command == RequestCommand.CODE;
+
+                if(isReply)
+                    msgId = originalEnvelope.ReadNext<uint>();
             }
-            catch (SocketException)
+
+            if(isReply && msgId > 0)
             {
-                return false;
+                envelopeToSend.Append(ReplyCommand.CODE);
+                envelopeToSend.Append(msgId);
+            } else
+            {
+                envelopeToSend.Append(NoneCommand.CODE);
             }
+
+            return socket.Send(envelopeToSend.ToByteArray());
         }
 
         public bool Send(string msg)
@@ -163,12 +208,36 @@ namespace xMQ
             return Send(msgPack);
         }
 
-        public Message Request(Message msg)
+        public Message Request(Message msg, int millisecondsTimeout = -1)
         {
             if (socket == null)
                 throw new NotSupportedException("There is no connection established, use the Connect() or Bind() method to initiate a connection");
 
-            return socket.Request(msg);
+            var msgId = GenerateStoredAwaiter();
+            var responseAwaiter = StoredResponses[msgId];
+
+            var envelop = new Envelope(msg);
+            envelop.Append(RequestCommand.CODE);
+            envelop.Append(msgId);
+
+            var networkSuccess = socket.Send(envelop.ToByteArray());
+            var msgReceived = responseAwaiter.Signal.Wait(millisecondsTimeout);
+
+            if (networkSuccess && msgReceived)
+            {
+                var dataEnvelop = responseAwaiter.Data.GetMessage();
+                dataEnvelop.Success = true;
+
+                StoredResponses.Remove(msgId);
+
+                return dataEnvelop;
+            }
+            else
+            {
+                var errorPackage = new Message();
+                errorPackage.Success = false;
+                return errorPackage;
+            }
         }
 
         public List<PairSocket> GetAllClients()
@@ -176,7 +245,7 @@ namespace xMQ
             if (socket == null)
                 throw new NotSupportedException("There is no connection established, use the Connect() or Bind() method to initiate a connection");
 
-            return socket.GetAllClients();
+            return WrappedSocketsMap.Values.ToList();
         }
 
         public PairSocket GetClient<T>(T identifier)
@@ -184,7 +253,12 @@ namespace xMQ
             if (socket == null)
                 throw new NotSupportedException("There is no connection established, use the Connect() or Bind() method to initiate a connection");
 
-            return socket.GetClient(identifier);
+            var key = GenericBitConverter.GetBytes(identifier);
+
+            PairSocket pairSocket;
+            IdentitySocketsMap.TryGetValue(key, out pairSocket);
+
+            return pairSocket;
         }
 
         public bool Close(Message msg)
@@ -197,28 +271,32 @@ namespace xMQ
                 socket.Close();
                 return true;
             }
-            catch (SocketException ex)
+            catch (SocketException)
             {
                 return false;
             }
         }
 
-        void IController.OnMessage(PairSocket remote, Envelope envelop)
+        void IController.OnMessage(ISocket remote, byte[] message)
         {
-            protocolHandler.HandleMessage(this, remote ?? this, envelop);
+            PairSocket remotePair = remote != null ? WrappedSocketsMap[remote] : this;
+
+            var envelop = new Envelope(message);
+            protocolHandler.HandleMessage(this, remotePair, envelop);
         }
 
-        void IController.OnDisconnect(PairSocket remote)
+        void IController.OnDisconnect(ISocket remote)
         {
+            WrappedSocketsMap.Remove(remote);
         }
 
-        void IController.OnConnected(PairSocket remote)
+        void IController.OnConnected(ISocket remote)
         {
+            WrappedSocketsMap[remote] = new PairSocket(remote);
         }
 
-        internal static PairSocket Wrapper(ISocket genericSocket)
+        void IController.OnError(ISocket remote)
         {
-            return new PairSocket(genericSocket);
         }
     }
 }

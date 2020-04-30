@@ -26,11 +26,6 @@ namespace xMQ.Protocol
 
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {
-            var canHandler = CanHandler(CODE, envelop);
-
-            if (!canHandler)
-                return false;
-
             me.OnMessage?.Invoke(envelop.GetMessage(), remote);
 
             return true;
