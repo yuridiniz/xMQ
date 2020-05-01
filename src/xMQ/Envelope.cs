@@ -16,7 +16,7 @@ namespace xMQ
             messageData.Envelope = this;
         }
 
-        internal Envelope(params object[] appends)
+        public Envelope(params object[] appends)
            : base(appends)
         {
         }

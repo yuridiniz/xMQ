@@ -129,18 +129,18 @@ namespace xMQ
             }
         }
 
-        public bool TryConnect(string pairAddress) => Connect(pairAddress, true);
+        public bool TryConnect(string pairAddress, int timeout = 1000) => Connect(pairAddress, timeout, true);
 
-        public void Connect(string pairAddress) => Connect(pairAddress, false);
+        public void Connect(string pairAddress, int timeout = 1000) => Connect(pairAddress, timeout, false);
 
-        private bool Connect(string pairAddress, bool silence)
+        private bool Connect(string pairAddress, int timeout, bool silence)
         {
             Uri pairAddressUri = ValidateAddress(pairAddress);
             var _socket = GetSocketConnectionProtocol(pairAddressUri);
 
             try
             {
-                _socket.Connect();
+                _socket.Connect(timeout);
                 socket = _socket;
 
                 return true; 

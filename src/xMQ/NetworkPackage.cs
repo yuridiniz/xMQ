@@ -17,7 +17,7 @@ namespace xMQ
         {
         }
 
-        internal NetworkPackage(params object[] appends)
+        public NetworkPackage(params object[] appends)
         {
             for (var i = 0; i < appends.Length; i++)
                 Append(appends[i]);

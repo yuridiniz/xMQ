@@ -42,17 +42,26 @@ namespace xMQExample
         private void DoCommunication()
         {
             Console.WriteLine("> Iniciando comunicação básica");
+            Console.WriteLine("> Comandos (uint): ");
+            Console.WriteLine("> 0: Escreve no console remoto");
+            Console.WriteLine("> 1: Envia um dado para ser salvos");
+            Console.WriteLine("> 2: Solicita todos os dados salvos");
+            Console.WriteLine("> 3: Envia um Echo");
+            Console.WriteLine("> ");
 
             pairSocket.OnMessage += OnMessage;
 
             var keepCommunication = true;
             while (keepCommunication)
             {
+                Console.Write("> Operação (uint): ");
+
                 var operation = Console.ReadLine();
 
                 uint opCode;
                 if (uint.TryParse(operation, out opCode))
                 {
+                    Console.Write("> Mensagem (string): ");
                     var txtMessage = Console.ReadLine();
 
                     var package = new Message();
@@ -64,15 +73,27 @@ namespace xMQExample
                     {
                         var client = clients[0];
 
-                        var response = client.Request(package);
-                        Console.WriteLine(">>> Response:");
+                        var response = client.Request(package, 10); //10ms Timeout
+                        if (response.Success)
+                        {
+                            Console.WriteLine(">>> Response:");
 
-                        var serverOperationCode = response.ReadNext<uint>();
-                        var serverMesage = response.ReadNext<string>();
+                            var serverOperationCode = response.ReadNext<uint>();
 
-                        Console.WriteLine("Operation: " + serverOperationCode);
-                        Console.WriteLine("Message: " + serverMesage);
-                        Console.WriteLine("");
+                            Console.WriteLine("");
+
+                            Console.WriteLine("Operation from Remote: " + serverOperationCode);
+                            string frame = "";
+                            while ((frame = response.ReadNext<string>()) != "")
+                                Console.WriteLine(frame);
+
+                            Console.WriteLine("");
+                        }
+                        else
+                        {
+                            Console.WriteLine(">>> Request fail!");
+                        }
+                       
                     } else
                     {
                         Console.WriteLine("> Nenhum cliente conectado");
@@ -81,15 +102,13 @@ namespace xMQExample
                 }
                 else
                 {
-                    Console.WriteLine("> Operação não é um valor válido, informe um ushort válido");
+                    Console.WriteLine("> Operação não é um valor válido, informe um uint válido");
                 }
             }
         }
 
         private void OnMessage(Message msg, PairSocket socket)
         {
-            Console.WriteLine("> Recebido via OnMessage");
-
             var op = msg.ReadNext<uint>();
             if (op == 1)
             {
@@ -99,16 +118,12 @@ namespace xMQExample
                 msg.Append("Adicionado");
 
                 socket.Send(msg);
-
             }
             else if (op == 2)
             {
                 msg.Append(0);
-
                 foreach (var item in storedvalues)
-                {
-                    msg.Append(item + "\n");
-                }
+                    msg.Append(item);
 
                 socket.Send(msg);
             }
@@ -124,7 +139,6 @@ namespace xMQExample
             else
             {
                 Console.WriteLine(msg.ToString());
-
             }
         }
     }

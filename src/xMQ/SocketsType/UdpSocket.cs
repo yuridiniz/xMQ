@@ -31,7 +31,7 @@ namespace xMQ.SocketsType
             throw new NotImplementedException();
         }
 
-        public void Connect()
+        public void Connect(int timeout)
         {
             throw new NotImplementedException();
         }

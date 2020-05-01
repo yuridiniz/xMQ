@@ -16,7 +16,7 @@ namespace xMQ
         {
         }
 
-        internal Message(params object[] appends)
+        public Message(params object[] appends)
             : base(appends)
         {
         }

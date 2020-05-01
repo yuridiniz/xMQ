@@ -53,6 +53,7 @@ namespace xMQ.SocketsType
         public void Bind()
         {
             socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.NoDelay, true);
 
             socket.Bind(new IPEndPoint(IPAddress.Parse(UriAddress.Host), UriAddress.Port));
 
@@ -65,16 +66,28 @@ namespace xMQ.SocketsType
             socket.Listen((int)SocketOptionName.MaxConnections);
         }
 
-        public void Connect()
+        public void Connect(int timeout)
         {
             socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.NoDelay, true);
 
-            socket.Connect(new IPEndPoint(IPAddress.Parse(UriAddress.Host), UriAddress.Port));
+            var endpoint = new IPEndPoint(IPAddress.Parse(UriAddress.Host), UriAddress.Port);
+            var result = socket.BeginConnect(endpoint, null, null);
 
-            ClientRunning = true;
+            bool success = result.AsyncWaitHandle.WaitOne(timeout, true);
+            if (success)
+            {
+                socket.EndConnect(result);
 
-            Task.Run(() => { Handler(); });
+                ClientRunning = true;
+
+                Task.Run(() => { Handler(); });
+            }
+            else
+            {
+                socket.Close();
+                throw new SocketException(10060); // Connection timed out.
+            }
         }
 
         public void Close()
