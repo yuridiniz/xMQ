@@ -5,7 +5,7 @@ using xMQ.SocketsType;
 
 namespace xMQ
 {
-    internal interface IController
+    internal interface ISocketController
     {
         void OnMessage(ISocket remote, byte[] data);
 

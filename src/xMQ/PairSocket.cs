@@ -6,13 +6,14 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using xMQ.Extension;
 using xMQ.Protocol;
 using xMQ.SocketsType;
 using xMQ.Util;
 
 namespace xMQ
 {
-    public class PairSocket : IController
+    public class PairSocket : ISocketController
     {
         private uint nextMessageId;
 
@@ -101,6 +102,17 @@ namespace xMQ
             }
 
             return msgId;
+        }
+
+        public void AddProtocolCommand(ExtendableProtocolCommand customProtocol)
+        {
+            var nextCode = protocolHandler.SupportedProtocol.Keys.Max() + 1;
+
+            if (nextCode > byte.MaxValue)
+                throw new InvalidOperationException("Limite de protocolos atingido");
+
+            customProtocol.CODE = (byte)nextCode;
+            protocolHandler.SupportedProtocol.Add(customProtocol.CODE, customProtocol);
         }
 
         public bool TryBind(string serverAddress)
@@ -277,7 +289,7 @@ namespace xMQ
             }
         }
 
-        void IController.OnMessage(ISocket remote, byte[] message)
+        void ISocketController.OnMessage(ISocket remote, byte[] message)
         {
             PairSocket remotePair = remote != null ? WrappedSocketsMap[remote] : this;
 
@@ -285,17 +297,17 @@ namespace xMQ
             protocolHandler.HandleMessage(this, remotePair, envelop);
         }
 
-        void IController.OnDisconnect(ISocket remote)
+        void ISocketController.OnDisconnect(ISocket remote)
         {
             WrappedSocketsMap.Remove(remote);
         }
 
-        void IController.OnConnected(ISocket remote)
+        void ISocketController.OnConnected(ISocket remote)
         {
             WrappedSocketsMap[remote] = new PairSocket(remote);
         }
 
-        void IController.OnError(ISocket remote)
+        void ISocketController.OnError(ISocket remote)
         {
         }
     }

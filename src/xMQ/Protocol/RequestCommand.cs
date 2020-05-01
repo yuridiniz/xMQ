@@ -10,17 +10,6 @@ namespace xMQ.Protocol
     {
         public const byte CODE = 3;
 
-        private static RequestCommand _handlerInstance = null;
-        public static RequestCommand Handler
-        {
-            get
-            {
-                if (_handlerInstance == null)
-                    _handlerInstance = new RequestCommand();
-
-                return _handlerInstance;
-            }
-        }
 
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {

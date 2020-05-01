@@ -21,7 +21,7 @@ namespace xMQ.SocketsType
 
         public Uri UriAddress { get; }
 
-        public IController ConnectionController { get; }
+        public ISocketController ConnectionController { get; }
         internal Dictionary<Socket, ISocket> MappedInstance { get; }
 
         public TcpSocket()
@@ -37,14 +37,14 @@ namespace xMQ.SocketsType
             socket = _socket;
         }
 
-        public TcpSocket(Uri uri, IController connectionController)
+        public TcpSocket(Uri uri, ISocketController connectionController)
           : this()
         {
             UriAddress = uri;
             ConnectionController = connectionController;
         }
 
-        public TcpSocket(Socket _socket, IController connectionController)
+        public TcpSocket(Socket _socket, ISocketController connectionController)
             :this(_socket)
         {
             ConnectionController = connectionController;
