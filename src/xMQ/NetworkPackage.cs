@@ -17,6 +17,12 @@ namespace xMQ
         {
         }
 
+        public NetworkPackage(params object[] appends)
+        {
+            for (var i = 0; i < appends.Length; i++)
+                Append(appends[i]);
+        }
+
         internal NetworkPackage(byte[] socketData)
         {
             receivedData = socketData;
@@ -100,12 +106,6 @@ namespace xMQ
             {
                 var bytes = ReadNext();
                 var value = Encoding.UTF8.GetString(bytes.ToArray());
-                return (T)Convert.ChangeType(value, typeof(T));
-            }
-            else if (typeof(T) == typeof(Guid))
-            {
-                var bytes = ReadNext();
-                var value = new Guid(bytes);
                 return (T)Convert.ChangeType(value, typeof(T));
             }
             else

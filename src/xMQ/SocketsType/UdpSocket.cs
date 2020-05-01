@@ -31,12 +31,22 @@ namespace xMQ.SocketsType
             throw new NotImplementedException();
         }
 
-        public bool Connect()
+        public void Connect(int timeout)
+        {
+            throw new NotImplementedException();
+        }
+
+        public int Read(byte[] buffer)
         {
             throw new NotImplementedException();
         }
 
         public bool Send(byte[] msg)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Dispose()
         {
             throw new NotImplementedException();
         }

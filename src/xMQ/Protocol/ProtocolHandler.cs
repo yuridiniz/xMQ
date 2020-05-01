@@ -20,11 +20,14 @@ namespace xMQ.Protocol
 
         private void InitSupportedProtocolHeader()
         {
-            SupportedProtocol.Add(NoneCommand.CODE, NoneCommand.Handler);
-            SupportedProtocol.Add(IdentityCommand.CODE, IdentityCommand.Handler);
-            SupportedProtocol.Add(IdentityResultCommand.CODE, IdentityResultCommand.Handler);
-            SupportedProtocol.Add(RequestCommand.CODE, RequestCommand.Handler);
-            SupportedProtocol.Add(ReplyCommand.CODE, ReplyCommand.Handler);
+            SupportedProtocol.Add(NoneCommand.CODE, new NoneCommand());
+            SupportedProtocol.Add(IdentityCommand.CODE, new IdentityCommand());
+            SupportedProtocol.Add(IdentityResultCommand.CODE, new IdentityResultCommand());
+            SupportedProtocol.Add(RequestCommand.CODE, new RequestCommand());
+            SupportedProtocol.Add(ReplyCommand.CODE, new ReplyCommand());
+            SupportedProtocol.Add(PublishCommand.CODE, new PublishCommand());
+            SupportedProtocol.Add(MsgPublishedCommand.CODE, new MsgPublishedCommand());
+            SupportedProtocol.Add(SubscribeCommand.CODE, new PublishCommand());
         }
 
         internal void HandleMessage(PairSocket me, PairSocket remote, Envelope envelope)
