@@ -7,6 +7,7 @@ namespace xMQ
     public class MessageData
     {
         public string Queue { get; set; }
-        public DateTime SendData { get; set; }
+        public bool IsLost { get; set; }
+        public DateTime? SendDate { get; set; }
     }
 }

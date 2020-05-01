@@ -25,7 +25,6 @@ namespace xMQ.Protocol
 
             var senderDate = DateConverter.ConvertToUnixTimestamp(DateTime.Now);
 
-
             var queueEnvelop = new Envelope(envelop.GetMessage());
             queueEnvelop.Append(queue);
             queueEnvelop.Append((byte)PubSubQueueLostType.None);

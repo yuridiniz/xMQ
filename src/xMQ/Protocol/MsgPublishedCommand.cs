@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using xMQ.PubSubProtocol;
+using xMQ.Util;
 
 namespace xMQ.Protocol
 {
@@ -10,9 +12,20 @@ namespace xMQ.Protocol
 
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {
-            var msgId = envelop.ReadNext<uint>();
+            var queueName = envelop.ReadNext<string>();
+            var lostType = envelop.ReadNext<byte>();
 
-            me.OnMessage?.Invoke(envelop.GetMessage(), remote);
+            var queueData = new MessageData();
+            queueData.Queue = queueName;
+            queueData.IsLost = lostType != (byte)PubSubQueueLostType.None;
+
+            if(queueData.IsLost)
+            {
+                var dateTime = envelop.ReadNext<long>();
+                queueData.SendDate = DateConverter.ConvertFromUnixTimestamp(dateTime);
+            }
+
+            me.OnMessage?.Invoke(envelop.GetMessage(), remote, queueData);
 
             return true;
         }
