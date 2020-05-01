@@ -1,11 +1,86 @@
 # eXtendable Message Queue
 Provides a message queue with the purpose of being simple, performative and effective, and can be easily extended
 
-## How To:
-
-Request Reply:
+## Getting Started:
 
 
+**Create Server**:
+
+```c#
+var socket = new PairSocket("tcp://127.0.0.1:5001"); // Server Host Address
+socket.OnMessage += (remote, msg) => { };
+socket.OnConnected += (remote) => { };
+socket.OnDisconnected += (remote) => { };
+
+socket.Bind(); //Call Bind()
+
+Console.ReadKey();
+```
+
+**Create Client**:
+
+```c#
+var socket = new PairSocket("tcp://127.0.0.1:5001"); // Server address
+socket.OnMessage += (remote, msg) => { };
+socket.OnConnected += (remote) => { };
+socket.OnDisconnected += (remote) => { };
+
+socket.Connect(); //Call Connect()
+
+Console.ReadKey();
+```
+## Send and Receive mensage
+
+## Request / Reply
+
+**Request**:
+
+```c#
+
+/* ... server or client connection setup ... */
+
+var msg = new Message();
+msg.Append(0x1); // My command, but it can be a string, a Guid or another primite type :)
+msg.Append("Hello");
+msg.Append("World");
+
+int timeout = 500; // -1 for infinty timeout
+var response = socket.Request(msg, timeout);
+if(response.Success) {
+  var firstToken = response.ReadNext<int>(); //What will the server command be? Did he send a 0x5 or 0x6 to me? :)
+  var secondToken = response.ReadNext<string>();
+  Console.WriteLine(secondToken);
+}
+```
+
+**Reply**:
+
+```c#
+
+/* ... server or client connection setup ... */
+socket.OnMessage += (remote, msg) => { 
+   var myCommand = msg.ReadNext<int>();
+   if(myCommand == 0x1) 
+   {
+      var firstToken = msg.ReadNext<string>();
+      var secondToken = msg.ReadNext<string>();
+      
+      Console.WriteLine(firstToken);
+      Console.WriteLine(secondToken);
+      
+      // If it is necessary to send a new message, 
+      // we recommend that you write in the same message received, 
+      // so that if the message contains a Reply Id, the server will be able to find the requester
+      
+      msg.Append(0x5); // My own response command if needed for your protocol
+      msg.Append("Thanks");
+      
+      remote.Send(msg);
+   }
+}
+
+
+```
 
 
 ## Motivation
