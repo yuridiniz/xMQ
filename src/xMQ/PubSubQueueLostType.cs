@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace xMQ.PubSubProtocol
+namespace xMQ
 {
-    enum PubSubQueueLostType : byte
+    public enum PubSubQueueLostType : byte
     {
         None = 0,
         Persitent = 1,
-        LastMessage = 1,
+        LastMessage = 2,
     }
 }

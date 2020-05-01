@@ -252,6 +252,34 @@ namespace xMQ
             return Send(msgPack);
         }
 
+        public bool Publish(string queue, Message msg)
+        {
+            var msgPack = new Envelope(msg);
+            msgPack.Append(PublishCommand.CODE);
+            msgPack.Append(queue);
+
+            return socket.Send(msgPack.ToByteArray());
+        }
+
+        public bool Subscribe(string queue, PubSubQueueLostType lostType)
+        {
+            var msgPack = new Envelope();
+            msgPack.Append(SubscribeCommand.CODE);
+            msgPack.Append(queue);
+            msgPack.Append((byte) lostType);
+
+            return socket.Send(msgPack.ToByteArray());
+        }
+
+        public bool Unsubscribe(string queue)
+        {
+            var msgPack = new Envelope();
+            msgPack.Append(SubscribeCommand.CODE);
+            msgPack.Append(queue);
+
+            return socket.Send(msgPack.ToByteArray());
+        }
+
         public Message Request(Message msg, int millisecondsTimeout = -1)
         {
             if (socket == null)
