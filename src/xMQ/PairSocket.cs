@@ -111,11 +111,13 @@ namespace xMQ
         private bool Bind(string serverAddress, bool silence)
         {
             Uri serverUri = ValidateAddress(serverAddress);
-            socket = GetSocketConnectionProtocol(serverUri);
+            var _socket = GetSocketConnectionProtocol(serverUri);
 
             try
             {
-                socket.Bind();
+                _socket.Bind();
+                socket = _socket;
+
                 return true;
             }
             catch (Exception ex)
@@ -134,11 +136,13 @@ namespace xMQ
         private bool Connect(string pairAddress, bool silence)
         {
             Uri pairAddressUri = ValidateAddress(pairAddress);
-            socket = GetSocketConnectionProtocol(pairAddressUri);
+            var _socket = GetSocketConnectionProtocol(pairAddressUri);
 
             try
             {
-                socket.Connect();
+                _socket.Connect();
+                socket = _socket;
+
                 return true; 
             }
             catch (Exception ex)
@@ -257,6 +261,12 @@ namespace xMQ
             try
             {
                 socket.Close();
+                socket = null;
+
+                WrappedSocketsMap.Clear();
+                IdentitySocketsMap.Clear();
+                StoredResponses.Clear();
+
                 return true;
             }
             catch (SocketException)

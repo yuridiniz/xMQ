@@ -16,6 +16,11 @@ namespace xMQ
         {
         }
 
+        internal Message(params object[] appends)
+            : base(appends)
+        {
+        }
+
         internal Message(byte[] socketData)
             :base(socketData)
         {

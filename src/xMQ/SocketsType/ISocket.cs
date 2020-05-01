@@ -9,6 +9,6 @@ namespace xMQ.SocketsType
         bool Send(byte[] msg);
         void Close();
         void Bind();
-        bool Connect();
+        void Connect();
     }
 }

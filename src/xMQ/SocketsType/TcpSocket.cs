@@ -65,28 +65,24 @@ namespace xMQ.SocketsType
             socket.Listen((int)SocketOptionName.MaxConnections);
         }
 
-        public bool Connect()
+        public void Connect()
         {
-            try
-            {
-                socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
-                socket.Connect(new IPEndPoint(IPAddress.Parse(UriAddress.Host), UriAddress.Port));
+            socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.NoDelay, true);
 
-                ClientRunning = true;
+            socket.Connect(new IPEndPoint(IPAddress.Parse(UriAddress.Host), UriAddress.Port));
 
-                Task.Run(() => { Handler(); });
+            ClientRunning = true;
 
-                return true;
-            }
-            catch (Exception)
-            {
-                return false;
-            }
+            Task.Run(() => { Handler(); });
         }
 
         public void Close()
         {
             socket.Close();
+            clients.Clear();
+            MappedInstance.Clear();
+
             ServerRunning = false;
             ClientRunning = false;
         }
@@ -217,7 +213,7 @@ namespace xMQ.SocketsType
                 socket.Send(msg);
                 return true;
             }
-            catch (SocketException)
+            catch (SocketException ex)
             {
                 return false;
             }
