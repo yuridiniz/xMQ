@@ -108,12 +108,6 @@ namespace xMQ
                 var value = Encoding.UTF8.GetString(bytes.ToArray());
                 return (T)Convert.ChangeType(value, typeof(T));
             }
-            else if (typeof(T) == typeof(Guid))
-            {
-                var bytes = ReadNext();
-                var value = new Guid(bytes);
-                return (T)Convert.ChangeType(value, typeof(T));
-            }
             else
             {
                 int size;

@@ -15,7 +15,7 @@ namespace xMQ.Protocol
         {
             var msgId = envelop.ReadNext<uint>();
 
-            me.OnMessage?.Invoke(envelop.GetMessage(), remote);
+            me.OnMessage?.Invoke(envelop.GetMessage(), remote, null);
 
             return true;
         }

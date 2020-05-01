@@ -13,15 +13,11 @@ namespace xMQ.Protocol
     {
         public const byte CODE = 2;
 
-
-        private enum ResultCode
-        {
-            SUCCESS = 0,
-            CONFLICT = 1
-        }
-
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {
+            me.ConnectionId = envelop.ReadNext<Guid>();
+            me.idAwaiter.Set();
+
             return true;
         }
 

@@ -14,6 +14,10 @@ namespace xMQ.Util
             {
                 return new byte[] { (byte)value };
             }
+            else if (type == typeof(byte[]))
+            {
+                return (byte[]) value;
+            }
             else if (type == typeof(sbyte))
             {
                 return BitConverter.GetBytes((sbyte)value);
@@ -45,6 +49,10 @@ namespace xMQ.Util
             else if (type == typeof(string))
             {
                 return Encoding.UTF8.GetBytes(value.ToString());
+            }
+            else if (type == typeof(Guid))
+            {
+                return ((Guid)value).ToByteArray();
             }
 
             return null;
@@ -138,7 +146,12 @@ namespace xMQ.Util
                 var arr = GetValue(array, startIndex, size);
                 result = BitConverter.ToBoolean(arr, 0);
             }
-           
+            else if (typeof(T) == typeof(Guid))
+            {
+                size = 16;
+                var arr = GetValue(array, startIndex, size);
+                result = new Guid(arr);
+            }
 
             return (T)Convert.ChangeType(result, typeof(T));
         }

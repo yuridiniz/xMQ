@@ -169,7 +169,7 @@ namespace xMQ.SocketsType
 
         public int Read(byte[] buffer)
         {
-            throw new NotImplementedException();
+            return socket.Receive(buffer);
         }
 
         public void Dispose()

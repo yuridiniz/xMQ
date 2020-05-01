@@ -35,19 +35,30 @@ namespace xMQ
 
         internal Dictionary<uint, ResponseAwaiter> StoredResponses { get; }
         internal Dictionary<byte[], PairSocket> IdentitySocketsMap { get; }
+        internal Dictionary<PairSocket, byte[]> IdentityConnectionSocketsMap { get; }
+
         internal Dictionary<string, PubSubQueue> Queue { get; }
-        public object ConnectionId { get; set; }
+        public Guid ConnectionId { get; internal set; }
+
+        internal ManualResetEventSlim idAwaiter = new ManualResetEventSlim(false);
 
         public PairSocket()
         {
             protocolHandler = new ProtocolHandler();
             StoredResponses = new Dictionary<uint, ResponseAwaiter>();
             IdentitySocketsMap = new Dictionary<byte[], PairSocket>();
+            IdentityConnectionSocketsMap = new Dictionary<PairSocket, byte[]>();
             WrappedSocketsMap = new Dictionary<ISocket, PairSocket>();
             Queue = new Dictionary<string, PubSubQueue>();
 
             //Task.Run(() => { KeepAlive(); });
             //TODO Start Queue Cleaner
+        }
+
+        public PairSocket(Guid identifier)
+            :this()
+        {
+            ConnectionId = identifier;
         }
 
         internal PairSocket(ISocket _socket)
@@ -163,17 +174,36 @@ namespace xMQ
                 _socket.Connect(timeout);
                 socket = _socket;
 
+                SendConnectionIdentification();
                 InitProtocolJobs();
 
                 return true; 
             }
             catch (Exception ex)
             {
-                if(!silence)
+                socket?.Close();
+                socket = null;
+
+                if (!silence)
                     throw ex;
 
                 return false;
             }
+        }
+
+        private void SendConnectionIdentification()
+        {
+            var msg = new Message();
+            if(ConnectionId != Guid.Empty)
+                msg.Append(ConnectionId);
+
+            var envelope = new Envelope(msg);
+            msg.Append(IdentityCommand.CODE);
+
+            if (!socket.Send(envelope.ToByteArray()))
+                throw new Exception("Não foi possível realizar a identificação");
+
+            idAwaiter.Wait(-1);
         }
 
         public bool Send(Envelope envelope)
@@ -267,7 +297,7 @@ namespace xMQ
                 var length = BitConverter.ToInt16(buffer, 0);
 
                 byte[] msg = new byte[length];
-                bytesReceived = socket.Read(buffer);
+                bytesReceived = socket.Read(msg);
 
                 return new Envelope(msg);
             }
@@ -319,16 +349,6 @@ namespace xMQ
             }
         }
 
-        public void Dispose()
-        {
-            WrappedSocketsMap.Clear();
-            IdentitySocketsMap.Clear();
-            StoredResponses.Clear();
-            StopProtocolJobs();
-            socket?.Dispose();
-            socket = null;
-        }
-
         public void AddProtocolCommand(ExtendableProtocolCommand customProtocol)
         {
             var nextCode = protocolHandler.SupportedProtocol.Keys.Max() + 1;
@@ -343,6 +363,7 @@ namespace xMQ
         void ISocketController.OnMessage(ISocket remote)
         {
             PairSocket remotePair = remote != null ? WrappedSocketsMap[remote] : this;
+
             var envelope = remotePair.Read();
 
             if(envelope == null)
@@ -363,6 +384,16 @@ namespace xMQ
 
         void ISocketController.OnError(ISocket remote)
         {
+        }
+
+        public void Dispose()
+        {
+            WrappedSocketsMap.Clear();
+            IdentitySocketsMap.Clear();
+            StoredResponses.Clear();
+            StopProtocolJobs();
+            socket?.Dispose();
+            socket = null;
         }
 
     }

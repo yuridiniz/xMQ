@@ -26,7 +26,7 @@ namespace xMQ.Protocol
             SupportedProtocol.Add(RequestCommand.CODE, new RequestCommand());
             SupportedProtocol.Add(ReplyCommand.CODE, new ReplyCommand());
             SupportedProtocol.Add(PublishCommand.CODE, new PublishCommand());
-            SupportedProtocol.Add(MsgPublishedCommand.CODE, new PublishCommand());
+            SupportedProtocol.Add(MsgPublishedCommand.CODE, new MsgPublishedCommand());
             SupportedProtocol.Add(SubscribeCommand.CODE, new PublishCommand());
         }
 

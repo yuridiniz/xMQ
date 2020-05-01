@@ -107,7 +107,7 @@ namespace xMQExample
             }
         }
 
-        private void OnMessage(Message msg, PairSocket socket)
+        private void OnMessage(Message msg, PairSocket socket, MessageData data)
         {
             var op = msg.ReadNext<uint>();
             if (op == 1)
