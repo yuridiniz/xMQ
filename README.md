@@ -32,7 +32,7 @@ Console.ReadKey();
 ```
 ## Send and Receive mensage
 
-### Send and Receive message
+### Async
 
 **Send**:
 
@@ -80,7 +80,7 @@ socket.OnMessage += (remote, msg) => {
 
 ```
 
-### Request / Reply
+### Request/Reply
 
 **Request**:
 
@@ -144,4 +144,4 @@ An incredible project, with an approach without Broker, but I soon saw some limi
 
 The project makes an abstraction that masks connection errors, and that for me would already make its use unfeasible.
 To get around this, you should implement a pooling on it to check the active connections.
-Other limitations also made me discouraged, such as the fact that you need a Socket object for each type of communication. So, if you want to work with Req / Resp and Pub / Sub, you should use 3 Sockets type, one for Req / Resp, one for Producer and one for Subscriber
+Other limitations also made me discouraged, such as the fact that you need a Socket object for each type of communication. So, if you want to work with Req/Resp and Pub/Sub, you should use 3 Sockets type, one for Req/Resp, one for Producer and one for Subscriber
