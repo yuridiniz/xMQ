@@ -104,38 +104,18 @@ namespace xMQ
             return msgId;
         }
 
-        public void AddProtocolCommand(ExtendableProtocolCommand customProtocol)
-        {
-            var nextCode = protocolHandler.SupportedProtocol.Keys.Max() + 1;
+        public bool TryBind(string serverAddress) => Bind(serverAddress, true);
 
-            if (nextCode > byte.MaxValue)
-                throw new InvalidOperationException("Limite de protocolos atingido");
+        public void Bind(string serverAddress) => Bind(serverAddress, false);
 
-            customProtocol.CODE = (byte)nextCode;
-            protocolHandler.SupportedProtocol.Add(customProtocol.CODE, customProtocol);
-        }
-
-        public bool TryBind(string serverAddress)
+        private bool Bind(string serverAddress, bool silence)
         {
             Uri serverUri = ValidateAddress(serverAddress);
             socket = GetSocketConnectionProtocol(serverUri);
 
-            return Bind(socket, true);
-        }
-
-        public void Bind(string serverAddress)
-        {
-            Uri serverUri = ValidateAddress(serverAddress);
-            socket = GetSocketConnectionProtocol(serverUri);
-
-            Bind(socket, false);
-        }
-
-        private bool Bind(ISocket socketConnection, bool silence)
-        {
             try
             {
-                socketConnection.Bind();
+                socket.Bind();
                 return true;
             }
             catch (Exception ex)
@@ -147,27 +127,18 @@ namespace xMQ
             }
         }
 
-        public bool TryConnect(string pairAddress)
+        public bool TryConnect(string pairAddress) => Connect(pairAddress, true);
+
+        public void Connect(string pairAddress) => Connect(pairAddress, false);
+
+        private bool Connect(string pairAddress, bool silence)
         {
             Uri pairAddressUri = ValidateAddress(pairAddress);
             socket = GetSocketConnectionProtocol(pairAddressUri);
 
-            return Connect(socket, true);
-        }
-
-        public void Connect(string pairAddress)
-        {
-            Uri pairAddressUri = ValidateAddress(pairAddress);
-            socket = GetSocketConnectionProtocol(pairAddressUri);
-
-            Connect(socket, false);
-        }
-
-        private bool Connect(ISocket socketConnection, bool silence)
-        {
             try
             {
-                socketConnection.Connect();
+                socket.Connect();
                 return true; 
             }
             catch (Exception ex)
@@ -177,6 +148,11 @@ namespace xMQ
 
                 return false;
             }
+        }
+
+        public bool Send(Envelope envelope)
+        {
+            return socket.Send(envelope.ToByteArray());
         }
 
         public bool Send(Message msg)
@@ -288,6 +264,19 @@ namespace xMQ
                 return false;
             }
         }
+
+
+        public void AddProtocolCommand(ExtendableProtocolCommand customProtocol)
+        {
+            var nextCode = protocolHandler.SupportedProtocol.Keys.Max() + 1;
+
+            if (nextCode > byte.MaxValue)
+                throw new InvalidOperationException("Limite de protocolos atingido");
+
+            customProtocol.CODE = (byte)nextCode;
+            protocolHandler.SupportedProtocol.Add(customProtocol.CODE, customProtocol);
+        }
+
 
         void ISocketController.OnMessage(ISocket remote, byte[] message)
         {
