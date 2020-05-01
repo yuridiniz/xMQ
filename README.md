@@ -15,6 +15,7 @@ Provides a message queue with the purpose of being simple, performative and effe
    - [IPC](#send-and-receive-mensage)
 * [SSL](#send-and-receive-mensage)
 * [Cluster](#send-and-receive-mensage)
+* [Properties and Configurations](#send-and-receive-mensage)
 
    
 ## Getting Started:
