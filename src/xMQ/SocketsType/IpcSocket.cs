@@ -35,6 +35,16 @@ namespace xMQ.SocketsType
             throw new NotImplementedException();
         }
 
+        public void Dispose()
+        {
+            throw new NotImplementedException();
+        }
+
+        public int Read(byte[] buffer)
+        {
+            throw new NotImplementedException();
+        }
+
         public bool Send(byte[] msg)
         {
             throw new NotImplementedException();

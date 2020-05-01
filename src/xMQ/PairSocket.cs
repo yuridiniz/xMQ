@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using xMQ.Extension;
 using xMQ.Protocol;
+using xMQ.PubSubProtocol;
 using xMQ.SocketsType;
 using xMQ.Util;
 
@@ -30,10 +31,12 @@ namespace xMQ
         public delegate void MessageHandler(Message msg, PairSocket socket);
         public MessageHandler OnMessage;
 
-        internal Dictionary<uint, ResponseAwaiter> StoredResponses { get; }
-        internal Dictionary<byte[], PairSocket> IdentitySocketsMap { get; }
         internal Dictionary<ISocket, PairSocket> WrappedSocketsMap { get; }
 
+        internal Dictionary<uint, ResponseAwaiter> StoredResponses { get; }
+        internal Dictionary<byte[], PairSocket> IdentitySocketsMap { get; }
+        internal Dictionary<string, PubSubQueue> Queue { get; }
+        public object ConnectionId { get; set; }
 
         public PairSocket()
         {
@@ -41,6 +44,10 @@ namespace xMQ
             StoredResponses = new Dictionary<uint, ResponseAwaiter>();
             IdentitySocketsMap = new Dictionary<byte[], PairSocket>();
             WrappedSocketsMap = new Dictionary<ISocket, PairSocket>();
+            Queue = new Dictionary<string, PubSubQueue>();
+
+            //Task.Run(() => { KeepAlive(); });
+            //TODO Start Queue Cleaner
         }
 
         internal PairSocket(ISocket _socket)
@@ -104,6 +111,17 @@ namespace xMQ
             return msgId;
         }
 
+        private void InitProtocolJobs()
+        {
+            //Task.Run(() => { KeepAlive(); });
+            //TODO Start Queue Cleaner
+        }
+
+        private void StopProtocolJobs()
+        {
+            throw new NotImplementedException();
+        }
+
         public bool TryBind(string serverAddress) => Bind(serverAddress, true);
 
         public void Bind(string serverAddress) => Bind(serverAddress, false);
@@ -117,6 +135,8 @@ namespace xMQ
             {
                 _socket.Bind();
                 socket = _socket;
+
+                InitProtocolJobs();
 
                 return true;
             }
@@ -142,6 +162,8 @@ namespace xMQ
             {
                 _socket.Connect(timeout);
                 socket = _socket;
+
+                InitProtocolJobs();
 
                 return true; 
             }
@@ -232,6 +254,29 @@ namespace xMQ
             }
         }
 
+        internal Envelope Read()
+        {
+            try
+            {
+                byte[] buffer = new byte[2];
+
+                var bytesReceived = socket.Read(buffer);
+                if (bytesReceived == 0)
+                    return null;
+
+                var length = BitConverter.ToInt16(buffer, 0);
+
+                byte[] msg = new byte[length];
+                bytesReceived = socket.Read(buffer);
+
+                return new Envelope(msg);
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+
         public List<PairSocket> GetAllClients()
         {
             if (socket == null)
@@ -253,7 +298,7 @@ namespace xMQ
             return pairSocket;
         }
 
-        public bool Close(Message msg)
+        public bool Close()
         {
             if (socket == null)
                 throw new NotSupportedException("There is no connection established, use the Connect() or Bind() method to initiate a connection");
@@ -261,20 +306,28 @@ namespace xMQ
             try
             {
                 socket.Close();
+                socket.Dispose();
                 socket = null;
-
-                WrappedSocketsMap.Clear();
-                IdentitySocketsMap.Clear();
-                StoredResponses.Clear();
 
                 return true;
             }
             catch (SocketException)
             {
+                socket.Dispose();
+                socket = null;
                 return false;
             }
         }
 
+        public void Dispose()
+        {
+            WrappedSocketsMap.Clear();
+            IdentitySocketsMap.Clear();
+            StoredResponses.Clear();
+            StopProtocolJobs();
+            socket?.Dispose();
+            socket = null;
+        }
 
         public void AddProtocolCommand(ExtendableProtocolCommand customProtocol)
         {
@@ -287,18 +340,20 @@ namespace xMQ
             protocolHandler.SupportedProtocol.Add(customProtocol.CODE, customProtocol);
         }
 
-
-        void ISocketController.OnMessage(ISocket remote, byte[] message)
+        void ISocketController.OnMessage(ISocket remote)
         {
             PairSocket remotePair = remote != null ? WrappedSocketsMap[remote] : this;
+            var envelope = remotePair.Read();
 
-            var envelop = new Envelope(message);
-            protocolHandler.HandleMessage(this, remotePair, envelop);
-        }
-
-        void ISocketController.OnDisconnect(ISocket remote)
-        {
-            WrappedSocketsMap.Remove(remote);
+            if(envelope == null)
+            {
+                OnClientDisconnect?.Invoke(remotePair);
+                Close();
+            }
+            else
+            {
+                protocolHandler.HandleMessage(this, remotePair, envelope);
+            }
         }
 
         void ISocketController.OnConnected(ISocket remote)
@@ -309,5 +364,6 @@ namespace xMQ
         void ISocketController.OnError(ISocket remote)
         {
         }
+
     }
 }

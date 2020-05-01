@@ -22,13 +22,11 @@ namespace xMQ.SocketsType
         public Uri UriAddress { get; }
 
         public ISocketController ConnectionController { get; }
-        internal Dictionary<Socket, ISocket> MappedInstance { get; }
 
         public TcpSocket()
         {
             resetEvent = new ManualResetEvent(false);
             clients = new List<Socket>();
-            MappedInstance = new Dictionary<Socket, ISocket>();
         }
 
         public TcpSocket(Socket _socket)
@@ -61,7 +59,6 @@ namespace xMQ.SocketsType
 
             Task.Run(() => { Listen(); });
             Task.Run(() => { Handler(); });
-            //Task.Run(() => { KeepAlive(); });
 
             socket.Listen((int)SocketOptionName.MaxConnections);
         }
@@ -93,9 +90,11 @@ namespace xMQ.SocketsType
         public void Close()
         {
             socket.Close();
-            clients.Clear();
-            MappedInstance.Clear();
 
+            for (var i = 0; i < clients.Count; i++)
+                SocketMapper.RemoveISocketMapper(clients[i]);
+
+            clients.Clear();
             ServerRunning = false;
             ClientRunning = false;
         }
@@ -111,7 +110,7 @@ namespace xMQ.SocketsType
                     var clientSocket = socket.Accept();
                     var tcpClient = new TcpSocket(clientSocket);
 
-                    MappedInstance[clientSocket] = tcpClient;
+                    SocketMapper.Mapper(clientSocket, tcpClient);
 
                     ConnectionController?.OnConnected(tcpClient);
 
@@ -140,20 +139,7 @@ namespace xMQ.SocketsType
                 for (var i = 0; i < socketSelector.Count; i++)
                 {
                     var socketSpeaker = socketSelector[i];
-
-                    var bytes = ReceiveBytes(socketSpeaker, 1);
-                    if (bytes.Length > 0)
-                    {
-                        ConnectionController?.OnMessage(MappedInstance[socketSpeaker], bytes);
-                    }
-                    else
-                    {
-                        //Notify Disconnect
-                        socketSpeaker.Close();
-                        ConnectionController.OnDisconnect(MappedInstance[socketSpeaker]);
-                        clients.Remove(socketSpeaker);
-                        MappedInstance.Remove(socketSpeaker);
-                    }
+                    ConnectionController?.OnMessage(SocketMapper.GetISocket(socketSpeaker));
                 }
             }
 
@@ -161,63 +147,12 @@ namespace xMQ.SocketsType
             {
                 if (socket.Poll(-1, SelectMode.SelectRead))
                 {
-                    var bytes = ReceiveBytes(socket, 100);
-                    if (bytes.Length > 0)
-                    {
-                        ConnectionController?.OnMessage(null, bytes);
-                    }
-                    else
-                    {
-                        //Notify Disconnect
-                        ClientRunning = false;
-                        ConnectionController?.OnDisconnect(null);
-                    }
+                    ConnectionController?.OnMessage(null);
                 }
 
             }
         }
 
-        private int GetLength(Socket thisSocket)
-        {
-            try
-            {
-                byte[] buffer = new byte[2];
-
-                var bytesReceived = thisSocket.Receive(buffer);
-                if (bytesReceived == 0)
-                    return bytesReceived;
-
-                var length = BitConverter.ToInt16(buffer, 0);
-
-                return length;
-            }
-            catch (Exception ex)
-            {
-                return 0;
-            }
-        }
-
-        private byte[] ReceiveBytes(Socket thisSocket, int timeout)
-        {
-            try
-            {
-                if (!thisSocket.Poll(timeout, SelectMode.SelectRead))
-                    return new byte[0];
-
-                var len = GetLength(thisSocket);
-                byte[] msg = new byte[len];
-                var bytesReceived = thisSocket.Receive(msg);
-
-                if (bytesReceived == 0)
-                    return new byte[0];
-
-                return msg;
-            }
-            catch (Exception)
-            {
-                return new byte[0];
-            }
-        }
 
         public bool Send(byte[] msg)
         {
@@ -230,6 +165,16 @@ namespace xMQ.SocketsType
             {
                 return false;
             }
+        }
+
+        public int Read(byte[] buffer)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Dispose()
+        {
+            
         }
     }
 }

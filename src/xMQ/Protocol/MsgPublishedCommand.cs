@@ -1,23 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace xMQ.Protocol
 {
-    /// <summary>
-    /// Processa mensagens de comunicação normal
-    /// </summary>
-    internal class NoneCommand : ProtocolCommand
+    internal class MsgPublishedCommand : ProtocolCommand
     {
-        public const byte CODE = 0;
+        public const byte CODE = 6;
 
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {
+            var msgId = envelop.ReadNext<uint>();
+
             me.OnMessage?.Invoke(envelop.GetMessage(), remote);
 
             return true;
         }
     }
+    
 }

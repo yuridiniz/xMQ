@@ -7,9 +7,7 @@ namespace xMQ
 {
     internal interface ISocketController
     {
-        void OnMessage(ISocket remote, byte[] data);
-
-        void OnDisconnect(ISocket remote);
+        void OnMessage(ISocket remote);
 
         void OnConnected(ISocket remote);
 
