@@ -31,7 +31,52 @@ Console.ReadKey();
 ```
 ## Send and Receive mensage
 
-## Request / Reply
+### Send and Receive message
+
+**Send**:
+
+```c#
+
+/* ... server or client connection setup ... */
+
+var msg = new Message();
+msg.Append(0x1); // My command, but it can be a string, a Guid or another primite type :)
+msg.Append("Hello");
+msg.Append("World");
+
+var success = socket.Send(msg);
+
+```
+
+**Listern**:
+
+```c#
+
+/* ... server or client connection setup ... */
+socket.OnMessage += (remote, msg) => { 
+   var myCommand = msg.ReadNext<int>();
+   if(myCommand == 0x1) 
+   {
+      var firstToken = msg.ReadNext<string>();
+      var secondToken = msg.ReadNext<string>();
+      
+      Console.WriteLine(firstToken);
+      Console.WriteLine(secondToken);
+      
+      // If it is necessary to send a new message, 
+      // we recommend that you write in the same message received, 
+      // so that if the message contains a Reply Id, the server will be able to find the requester
+      
+      msg.Append(0x5); // My own response command if needed for your protocol
+      msg.Append("Thanks");
+      
+      remote.Send(msg);
+   }
+}
+
+```
+
+### Request / Reply
 
 **Request**:
 
