@@ -13,52 +13,39 @@ namespace xMQ.Protocol
     {
         public const byte CODE = 1;
 
-        private static RequestCommand _handlerInstance = null;
-        public static RequestCommand Handler
-        {
-            get
-            {
-                if (_handlerInstance == null)
-                    _handlerInstance = new RequestCommand();
-
-                return _handlerInstance;
-            }
-        }
-
-        private enum ResultCode
-        {
-            SUCCESS = 0,
-            CONFLICT = 1
-        }
 
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {
             var msg = envelop.GetMessage();
-            var bytesIdentity = msg.ReadNext();
 
-            if (!me.IdentitySocketsMap.ContainsKey(bytesIdentity))
+            if(me.IdentityConnectionSocketsMap.ContainsKey(remote))
             {
-                me.IdentitySocketsMap[bytesIdentity] = remote;
-                SendResultCode(remote, ResultCode.SUCCESS);
-                return true;
+                //Evita de várias conexões fake no servidor
+                remote.Close();
             }
 
-            var registredConnection = me.IdentitySocketsMap[bytesIdentity];
-            if (registredConnection == remote)
+            byte[] identifier;
+            if (msg.Length >= 16)
             {
-                SendResultCode(remote, ResultCode.SUCCESS);
-                return true;
+                identifier = msg.ReadNext(16);
+                remote.ConnectionId = new Guid(identifier);
+            }
+            else
+            {
+                remote.ConnectionId = Guid.NewGuid();
+                identifier = remote.ConnectionId.ToByteArray();
             }
 
-            SendResultCode(remote, ResultCode.CONFLICT);
+            me.IdentitySocketsMap[identifier] = remote;
+            SendResultCode(remote, identifier);
 
             return true;
         }
 
-        private void SendResultCode(PairSocket remote, ResultCode result)
+        private void SendResultCode(PairSocket remote, byte[] identityArray)
         {
             var msg = new Message();
-            msg.Append(result);
+            msg.Append(identityArray);
 
             var envelope = new Envelope(msg);
             envelope.Append(IdentityResultCommand.CODE);

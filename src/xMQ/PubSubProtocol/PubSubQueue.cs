@@ -1,0 +1,77 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace xMQ.PubSubProtocol
+{
+    internal class PubSubQueue
+    {
+        private uint persistentCount;
+        public bool HasPersistentSubscriber { get { return persistentCount > 0; } }
+        public bool CanDispose { get { return IdentifierSubscriber.Count == 0; } }
+
+        public Envelope LastMessage { get; set; }
+
+        private Dictionary<object, PairSocketSubscribe> IdentifierSubscriber { get; set; } = new Dictionary<object, PairSocketSubscribe>();
+
+        internal List<Envelope> AddSubscriber(PairSocketSubscribe subsConfig)
+        {
+            lock (this)
+            {
+                List<Envelope> droppedMessages = null;
+
+                if (subsConfig.PairSocket.ConnectionId != null)
+                {
+                    if (subsConfig.LostType == PubSubQueueLostType.Persitent)
+                    {
+                        //Try get droped messages
+                        var hasConfiguration = IdentifierSubscriber.ContainsKey(subsConfig.PairSocket.ConnectionId);
+                        if (!hasConfiguration)
+                            persistentCount++;
+                        else
+                            droppedMessages = IdentifierSubscriber[subsConfig.PairSocket.ConnectionId].GetDropedMessages();
+
+                    } else if(subsConfig.LostType == PubSubQueueLostType.LastMessage && LastMessage != null)
+                    {
+                        droppedMessages = new List<Envelope>() { LastMessage };
+                    }
+
+                    IdentifierSubscriber[subsConfig.PairSocket.ConnectionId] = subsConfig;
+                }
+
+                return droppedMessages;
+            }
+        }
+
+        internal void RemoveSubscriber(PairSocket subscriber, bool forced)
+        {
+            lock (this)
+            {
+                if (subscriber.ConnectionId != null)
+                {
+                    if (!IdentifierSubscriber.ContainsKey(subscriber.ConnectionId))
+                        return;
+
+                    var subConfig = IdentifierSubscriber[subscriber.ConnectionId];
+
+                    if (subConfig.LostType == PubSubQueueLostType.Persitent)
+                    {
+                        if (forced)
+                        {
+                            IdentifierSubscriber.Remove(subscriber.ConnectionId);
+                            persistentCount--;
+                        }
+                    } else
+                    {
+                        IdentifierSubscriber.Remove(subscriber.ConnectionId);
+                    }
+                }
+            }
+        }
+
+        internal Dictionary<object, PairSocketSubscribe>.ValueCollection GetClients()
+        {
+            return IdentifierSubscriber.Values;
+        }
+    }
+}
