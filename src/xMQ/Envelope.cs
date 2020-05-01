@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace xMQ
 {
-    internal class Envelope : NetworkPackage
+    public class Envelope : NetworkPackage
     {
         internal Message messageData;
 

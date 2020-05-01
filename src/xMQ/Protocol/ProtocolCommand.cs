@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 namespace xMQ.Protocol
 {
     internal abstract class ProtocolCommand
+    public abstract class ProtocolCommand
     {
 
         public abstract bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelope);
