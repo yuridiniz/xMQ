@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using xMQ.PubSubProtocol;
+using xMQ.Util;
 
 namespace xMQ.Protocol
 {
@@ -22,16 +23,33 @@ namespace xMQ.Protocol
                 pubSubQueue = me.Queue[queue];
             }
 
-            var queueEvenlop = new Envelope(envelop.GetMessage());
+            var senderDate = DateConverter.ConvertToUnixTimestamp(DateTime.Now);
+
+
+            var queueEnvelop = new Envelope(envelop.GetMessage());
+            queueEnvelop.Append(queue);
+            queueEnvelop.Append((byte)PubSubQueueLostType.None);
 
             foreach (var item in pubSubQueue.GetClients())
             {
-                var success = item.PairSocket.Send(queueEvenlop);
+                var success = item.PairSocket.Send(queueEnvelop);
                 if (!success && item.LostType == PubSubQueueLostType.Persitent)
-                    item.AddDropedMessage(queueEvenlop);
+                {
+                    var droppedEnvelop = new Envelope(envelop.GetMessage());
+                    droppedEnvelop.Append(queue);
+                    droppedEnvelop.Append((byte)PubSubQueueLostType.Persitent);
+                    droppedEnvelop.Append(senderDate);
+
+                    item.AddDropedMessage(droppedEnvelop);
+                }
             }
 
-            pubSubQueue.LastMessage = queueEvenlop;
+            var lastMsg = new Envelope(envelop.GetMessage());
+            queueEnvelop.Append(queue);
+            queueEnvelop.Append((byte)PubSubQueueLostType.LastMessage);
+            queueEnvelop.Append(senderDate);
+
+            pubSubQueue.LastMessage = lastMsg;
 
             return true;
         }

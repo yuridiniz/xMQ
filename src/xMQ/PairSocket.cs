@@ -28,7 +28,7 @@ namespace xMQ
         public delegate void ClientDisconnect(PairSocket socket);
         public ClientDisconnect OnClientDisconnect;
 
-        public delegate void MessageHandler(Message msg, PairSocket socket);
+        public delegate void MessageHandler(Message msg, PairSocket socket, MessageData queue);
         public MessageHandler OnMessage;
 
         internal Dictionary<ISocket, PairSocket> WrappedSocketsMap { get; }
@@ -119,7 +119,7 @@ namespace xMQ
 
         private void StopProtocolJobs()
         {
-            throw new NotImplementedException();
+            //Para os processos iniciados por InitProtocolJobs
         }
 
         public bool TryBind(string serverAddress) => Bind(serverAddress, true);

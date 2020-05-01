@@ -34,6 +34,14 @@ namespace xMQ.Util
             {
                 return BitConverter.GetBytes((uint)value);
             }
+            else if (type == typeof(long))
+            {
+                return BitConverter.GetBytes((long)value);
+            }
+            else if (type == typeof(ulong))
+            {
+                return BitConverter.GetBytes((ulong)value);
+            }
             else if (type == typeof(string))
             {
                 return Encoding.UTF8.GetBytes(value.ToString());

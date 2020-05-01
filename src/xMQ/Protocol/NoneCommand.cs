@@ -15,7 +15,7 @@ namespace xMQ.Protocol
 
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {
-            me.OnMessage?.Invoke(envelop.GetMessage(), remote);
+            me.OnMessage?.Invoke(envelop.GetMessage(), remote, null);
 
             return true;
         }
