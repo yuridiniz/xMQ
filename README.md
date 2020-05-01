@@ -21,6 +21,7 @@ Console.ReadKey();
 
 ```c#
 var socket = new PairSocket("tcp://127.0.0.1:5001"); // Server address
+socket.Id = "my client id :)";
 socket.OnMessage += (remote, msg) => { };
 socket.OnConnected += (remote) => { };
 socket.OnDisconnected += (remote) => { };
@@ -43,6 +44,9 @@ var msg = new Message();
 msg.Append(0x1); // My command, but it can be a string, a Guid or another primite type :)
 msg.Append("Hello");
 msg.Append("World");
+
+// If this call is being made on the server, you will have to obtain your client's socket
+// Através do método socket.GetClients() ou socket.GetClient("my client id :)")
 
 var success = socket.Send(msg);
 
