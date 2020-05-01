@@ -4,7 +4,7 @@ Provides a message queue with the purpose of being simple, performative and effe
 ### Summary
 
 * [Send and Receive mensage](#send-and-receive-mensage)
-	- [Asynchronous](#send-and-receive-mensage)
+   - [Asynchronous](#send-and-receive-mensage)
    - [Request/Reply](#send-and-receive-mensage)
    - [Pub/Sub](#send-and-receive-mensage)
 * [Delivery guarantee](#send-and-receive-mensage) 
@@ -49,7 +49,7 @@ Console.ReadKey();
 ```
 ## Send and Receive mensage
 
-### Async
+### Asynchronous
 
 **Send**:
 
