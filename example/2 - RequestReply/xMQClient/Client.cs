@@ -35,6 +35,7 @@ namespace xMQExample
 
                     pairSocket.Subscribe("connecteds", PubSubQueueLostType.LastMessage);
                     pairSocket.Publish("connecteds", new Message(0, "Chegando ae na area " + pairSocket.ConnectionId));
+                    pairSocket.SetLastWill("offline", new Message(0, "Meti o pé " + pairSocket.ConnectionId));
                     // Sleep apenas para que o Console não fique com mensagens misturadas e atrapalhe o entendimento do exemplo
                     // Em um cenário real, não precisaria de qualquer tipo de delay
                     Thread.Sleep(500);

@@ -214,6 +214,7 @@ namespace xMQ
             return socket.Send(msgPack.ToByteArray());
         }
 
+        
         public bool Subscribe(string queue, PubSubQueueLostType lostType)
         {
             var msgPack = new Envelope();
@@ -228,6 +229,15 @@ namespace xMQ
         {
             var msgPack = new Envelope();
             msgPack.Append(SubscribeCommand.CODE);
+            msgPack.Append(queue);
+
+            return socket.Send(msgPack.ToByteArray());
+        }
+
+        public bool SetLastWill(string queue, Message msg)
+        {
+            var msgPack = new Envelope(msg);
+            msgPack.Append(SetLastWillCommand.CODE);
             msgPack.Append(queue);
 
             return socket.Send(msgPack.ToByteArray());
