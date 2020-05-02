@@ -50,7 +50,7 @@ namespace xMQ.Protocol
             var envelope = new Envelope(msg);
             envelope.Append(IdentityResultCommand.CODE);
 
-            remote.socket.Send(envelope.ToByteArray());
+            remote.Socket.Send(envelope.ToByteArray());
         }
     }
 }

@@ -40,7 +40,7 @@ namespace xMQ.Protocol
                         var msg = dropedMessages[0];
                         dropedMessages.RemoveAt(0);
 
-                        var success = remote.Send(msg);
+                        var success = remote.Socket.Send(msg.ToByteArray());
                         if (!success)
                             subsConfig.AddDropedMessage(msg);
                     }

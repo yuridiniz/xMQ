@@ -21,7 +21,7 @@ namespace xMQ.SocketsType
 
         public Uri UriAddress { get; }
 
-        public ISocketController ConnectionController { get; }
+        public SocketProtocolController ConnectionController { get; }
 
         public TcpSocket()
         {
@@ -35,14 +35,14 @@ namespace xMQ.SocketsType
             socket = _socket;
         }
 
-        public TcpSocket(Uri uri, ISocketController connectionController)
+        public TcpSocket(Uri uri, SocketProtocolController connectionController)
           : this()
         {
             UriAddress = uri;
             ConnectionController = connectionController;
         }
 
-        public TcpSocket(Socket _socket, ISocketController connectionController)
+        public TcpSocket(Socket _socket, SocketProtocolController connectionController)
             :this(_socket)
         {
             ConnectionController = connectionController;
@@ -112,7 +112,7 @@ namespace xMQ.SocketsType
 
                     SocketMapper.Mapper(clientSocket, tcpClient);
 
-                    ConnectionController?.OnConnected(tcpClient);
+                    ConnectionController?.HandleConnection(tcpClient);
 
                     clients.Add(clientSocket);
                     resetEvent.Set();
@@ -120,7 +120,7 @@ namespace xMQ.SocketsType
                 }
                 else if (socket.Poll(10, SelectMode.SelectError))
                 {
-                    ConnectionController?.OnError(this);
+                    ConnectionController?.HandleError(this);
                     break;
                 }
             }
@@ -139,7 +139,7 @@ namespace xMQ.SocketsType
                 for (var i = 0; i < socketSelector.Count; i++)
                 {
                     var socketSpeaker = socketSelector[i];
-                    ConnectionController?.OnMessage(SocketMapper.GetISocket(socketSpeaker));
+                    ConnectionController?.HandleMesage(SocketMapper.GetISocket(socketSpeaker));
                 }
             }
 
@@ -147,7 +147,7 @@ namespace xMQ.SocketsType
             {
                 if (socket.Poll(-1, SelectMode.SelectRead))
                 {
-                    ConnectionController?.OnMessage(null);
+                    ConnectionController?.HandleMesage(null);
                 }
 
             }

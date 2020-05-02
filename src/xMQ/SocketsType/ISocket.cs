@@ -4,7 +4,7 @@ using System.Text;
 
 namespace xMQ.SocketsType
 {
-    internal interface ISocket: IDisposable
+    public interface ISocket: IDisposable
     {
         bool Send(byte[] msg);
         int Read(byte[] buffer);

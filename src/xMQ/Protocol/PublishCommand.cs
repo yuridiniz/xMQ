@@ -31,7 +31,7 @@ namespace xMQ.Protocol
 
             foreach (var item in pubSubQueue.GetClients())
             {
-                var success = item.PairSocket.Send(queueEnvelop);
+                var success = item.PairSocket.Socket.Send(queueEnvelop.ToByteArray());
                 if (!success && item.LostType == PubSubQueueLostType.Persitent)
                 {
                     var droppedEnvelop = new Envelope(envelop.GetMessage());

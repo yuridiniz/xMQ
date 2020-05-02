@@ -14,11 +14,9 @@ using xMQ.Util;
 
 namespace xMQ
 {
-    public class PairSocket : ISocketController
+    public class PairSocket : SocketProtocolController
     {
         private uint nextMessageId;
-
-        internal ISocket socket;
 
         private ProtocolHandler protocolHandler;
 
@@ -30,6 +28,8 @@ namespace xMQ
 
         public delegate void MessageHandler(Message msg, PairSocket socket, MessageData queue);
         public MessageHandler OnMessage;
+
+        internal ISocket Socket { get => socket; }
 
         internal Dictionary<ISocket, PairSocket> WrappedSocketsMap { get; }
 
@@ -67,44 +67,6 @@ namespace xMQ
             socket = _socket;
         }
 
-        private Uri ValidateAddress(string serverAddress)
-        {
-            if (socket != null)
-                throw new NotSupportedException("Unable to start another connection on a connection that has already started");
-
-            Uri serverUri;
-            if (!Uri.TryCreate(serverAddress, UriKind.Absolute, out serverUri))
-                throw new ArgumentException("serverAddress has a invalid value, use the format protocol://ip:port. Exemple: tcp://127.0.0.1:5000, see documentations for more protocol information");
-
-            if (serverUri.Port <= 0 || serverUri.Port > 65535)
-                throw new ArgumentException("Port range is not valid, enter a value between 1 and 65535");
-
-            return serverUri;
-        }
-
-        private ISocket GetSocketConnectionProtocol(Uri serverUri)
-        {
-            ISocket socketConnection;
-            if (serverUri.Scheme == TcpSocket.SCHEME)
-            {
-                socketConnection = new TcpSocket(serverUri, this);
-            }
-            else if (serverUri.Scheme == UdpSocket.SCHEME)
-            {
-                socketConnection = new UdpSocket(serverUri);
-            }
-            else if (serverUri.Scheme == TcpSocket.SCHEME)
-            {
-                socketConnection = new IpcSocket(serverUri.Host);
-            }
-            else
-            {
-                throw new NotSupportedException($"Scheme '{serverUri.Scheme}' is not valid, see documentations for more protocol information");
-            }
-
-            return socketConnection;
-        }
-
         private uint GenerateStoredAwaiter()
         {
             uint msgId = 0;
@@ -133,64 +95,52 @@ namespace xMQ
             //Para os processos iniciados por InitProtocolJobs
         }
 
-        public bool TryBind(string serverAddress) => Bind(serverAddress, true);
-
-        public void Bind(string serverAddress) => Bind(serverAddress, false);
-
-        private bool Bind(string serverAddress, bool silence)
+        public override bool TryBind(string serverAddress)
         {
-            Uri serverUri = ValidateAddress(serverAddress);
-            var _socket = GetSocketConnectionProtocol(serverUri);
+            if (!base.TryBind(serverAddress))
+                return false;
 
             try
             {
-                _socket.Bind();
-                socket = _socket;
-
                 InitProtocolJobs();
-
                 return true;
             }
             catch (Exception ex)
             {
-                if (!silence)
-                    throw ex;
-
                 return false;
             }
         }
 
-        public bool TryConnect(string pairAddress, int timeout = 1000) => Connect(pairAddress, timeout, true);
 
-        public void Connect(string pairAddress, int timeout = 1000) => Connect(pairAddress, timeout, false);
-
-        private bool Connect(string pairAddress, int timeout, bool silence)
+        public override void Bind(string serverAddress)
         {
-            Uri pairAddressUri = ValidateAddress(pairAddress);
-            var _socket = GetSocketConnectionProtocol(pairAddressUri);
+            base.Bind(serverAddress);
+            InitProtocolJobs();
+        }
+
+        public override bool TryConnect(string pairAddress, int timeout = 1000)
+        {
+            if (!base.TryConnect(pairAddress, timeout))
+                return false;
 
             try
             {
-                _socket.Connect(timeout);
-                socket = _socket;
-
-                SendConnectionIdentification();
                 InitProtocolJobs();
-
-                return true; 
+                return true;
             }
             catch (Exception ex)
             {
-                socket?.Close();
-                socket = null;
-
-                if (!silence)
-                    throw ex;
-
                 return false;
             }
         }
 
+        public override void Connect(string pairAddress, int timeout = 1000)
+        {
+            base.Connect(pairAddress, timeout);
+            SendConnectionIdentification();
+            InitProtocolJobs();
+        }
+      
         private void SendConnectionIdentification()
         {
             var msg = new Message();
@@ -206,7 +156,7 @@ namespace xMQ
             idAwaiter.Wait(-1);
         }
 
-        public bool Send(Envelope envelope)
+        protected bool Send(Envelope envelope)
         {
             return socket.Send(envelope.ToByteArray());
         }
@@ -388,13 +338,13 @@ namespace xMQ
             protocolHandler.SupportedProtocol.Add(customProtocol.CODE, customProtocol);
         }
 
-        void ISocketController.OnMessage(ISocket remote)
+        protected override void OnRemoteMessage(ISocket remote)
         {
             PairSocket remotePair = remote != null ? WrappedSocketsMap[remote] : this;
 
             var envelope = remotePair.Read();
 
-            if(envelope == null)
+            if (envelope == null)
             {
                 OnClientDisconnect?.Invoke(remotePair);
                 Close();
@@ -405,13 +355,14 @@ namespace xMQ
             }
         }
 
-        void ISocketController.OnConnected(ISocket remote)
+        protected override void OnRemoteConnected(ISocket remote)
         {
             WrappedSocketsMap[remote] = new PairSocket(remote);
         }
 
-        void ISocketController.OnError(ISocket remote)
+        protected override void OnError(ISocket remote)
         {
+            throw new NotImplementedException();
         }
 
         public void Dispose()
@@ -423,6 +374,5 @@ namespace xMQ
             socket?.Dispose();
             socket = null;
         }
-
     }
 }
