@@ -56,6 +56,7 @@ namespace xMQ.PubSubProtocol
                         return;
 
                     var subConfig = IdentifierSubscriber[subscriber.ConnectionId];
+                    subConfig.PairSocket = null;
 
                     if (subConfig.LostType == PubSubQueueLostType.Persistent)
                     {

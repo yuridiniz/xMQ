@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using xMQ.Protocol;
 using xMQ.Util;
 
 namespace xMQ
@@ -65,11 +66,18 @@ namespace xMQ
 
         public void Append(object value)
         {
-            senderBuffer.AddRange(GenericBitConverter.GetBytes(value));
-            
-            if (value.GetType() == typeof(string))
+            if (value is ProtocolCommand)
             {
-                AppendEmptyFrame();
+                senderBuffer.Add(((ProtocolCommand)value).CODE);
+            }
+            else
+            {
+                senderBuffer.AddRange(GenericBitConverter.GetBytes(value));
+
+                if (value.GetType() == typeof(string))
+                {
+                    AppendEmptyFrame();
+                }
             }
         }
 

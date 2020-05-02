@@ -8,7 +8,7 @@ namespace xMQ.PubSubProtocol
     {
         private const int LIMIT_DROPED_SIZE = 1024 * 1024; // 1MB
 
-        public PairSocket PairSocket { get; }
+        public PairSocket PairSocket { get; internal set; }
 
         public PubSubQueueLostType LostType { get; }
 

@@ -8,8 +8,19 @@ namespace xMQ.Protocol
 {
     internal class RequestCommand : ProtocolCommand
     {
-        public const byte CODE = 3;
+        private RequestCommand()
+        {
+        }
 
+        private static RequestCommand _command;
+        public static RequestCommand Command
+        {
+            get
+            {
+                if (_command == null) _command = new RequestCommand();
+                return _command;
+            }
+        }
 
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {

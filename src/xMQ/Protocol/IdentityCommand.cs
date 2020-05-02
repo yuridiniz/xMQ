@@ -11,8 +11,19 @@ namespace xMQ.Protocol
     /// </summary>
     internal class IdentityCommand : ProtocolCommand
     {
-        public const byte CODE = 1;
+        private IdentityCommand()
+        {
+        }
 
+        private static IdentityCommand _command;
+        public static IdentityCommand Command
+        {
+            get
+            {
+                if (_command == null) _command = new IdentityCommand();
+                return _command;
+            }
+        }
 
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {
@@ -48,7 +59,7 @@ namespace xMQ.Protocol
             msg.Append(identityArray);
 
             var envelope = new Envelope(msg);
-            envelope.Append(IdentityResultCommand.CODE);
+            envelope.Append(IdentityResultCommand.Command);
 
             remote.Socket.Send(envelope.ToByteArray());
         }

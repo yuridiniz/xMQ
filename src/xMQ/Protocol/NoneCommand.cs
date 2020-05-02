@@ -11,7 +11,19 @@ namespace xMQ.Protocol
     /// </summary>
     internal class NoneCommand : ProtocolCommand
     {
-        public const byte CODE = 0;
+        private NoneCommand()
+        {
+        }
+
+        private static NoneCommand _command;
+        public static NoneCommand Command
+        {
+            get
+            {
+                if (_command == null) _command = new NoneCommand();
+                return _command;
+            }
+        }
 
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {

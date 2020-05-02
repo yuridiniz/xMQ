@@ -7,7 +7,19 @@ namespace xMQ.Protocol
 {
     internal class SetLastWillCommand : ProtocolCommand
     {
-        public const byte CODE = 9;
+        private SetLastWillCommand()
+        {
+        }
+
+        private static SetLastWillCommand _command;
+        public static SetLastWillCommand Command
+        {
+            get
+            {
+                if (_command == null) _command = new SetLastWillCommand();
+                return _command;
+            }
+        }
 
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {
@@ -30,7 +42,7 @@ namespace xMQ.Protocol
             }
 
             var lastWillEnvelop = new Envelope(envelop.GetMessage());
-            lastWillEnvelop.Append(MsgPublishedCommand.CODE);
+            lastWillEnvelop.Append(PublishDeliveredCommand.Command);
             lastWillEnvelop.Append(queue);
             lastWillEnvelop.Append((byte)PubSubQueueLostType.None);
 

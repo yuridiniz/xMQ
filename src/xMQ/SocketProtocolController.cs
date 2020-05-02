@@ -24,10 +24,8 @@ namespace xMQ
             ProtocolHandler = new ProtocolHandler();
         }
 
-
         public void AddProtocolCommand(ProtocolCommand customProtocol)
         {
-
             var nextCode = ProtocolHandler.SupportedProtocol.Count;
             if(nextCode != 0)
                 nextCode = ProtocolHandler.SupportedProtocol.Keys.Max() + 1;
@@ -38,7 +36,6 @@ namespace xMQ
             customProtocol.CODE = (byte)nextCode;
             ProtocolHandler.SupportedProtocol.Add(customProtocol.CODE, customProtocol);
         }
-
 
         protected Uri ValidateAddress(string serverAddress)
         {

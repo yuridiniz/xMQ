@@ -7,7 +7,19 @@ namespace xMQ.Protocol
 {
     internal class UnsubscribeCommand : ProtocolCommand
     {
-        public const byte CODE = 8;
+        private UnsubscribeCommand()
+        {
+        }
+
+        private static UnsubscribeCommand _command;
+        public static UnsubscribeCommand Command
+        {
+            get
+            {
+                if (_command == null) _command = new UnsubscribeCommand();
+                return _command;
+            }
+        }
 
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {

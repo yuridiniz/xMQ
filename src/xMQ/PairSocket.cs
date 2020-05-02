@@ -69,16 +69,16 @@ namespace xMQ
 
         private void InitSupportedProtocolHeader()
         {
-            AddProtocolCommand(new NoneCommand());
-            AddProtocolCommand(new IdentityCommand());
-            AddProtocolCommand(new IdentityResultCommand());
-            AddProtocolCommand(new RequestCommand());
-            AddProtocolCommand(new ReplyCommand());
-            AddProtocolCommand(new PublishCommand());
-            AddProtocolCommand(new MsgPublishedCommand());
-            AddProtocolCommand(new SubscribeCommand());
-            AddProtocolCommand(new UnsubscribeCommand());
-            AddProtocolCommand(new SetLastWillCommand());
+            AddProtocolCommand(NoneCommand.Command);
+            AddProtocolCommand(IdentityCommand.Command);
+            AddProtocolCommand(IdentityResultCommand.Command);
+            AddProtocolCommand(RequestCommand.Command);
+            AddProtocolCommand(ReplyCommand.Command);
+            AddProtocolCommand(PublishCommand.Command);
+            AddProtocolCommand(PublishDeliveredCommand.Command);
+            AddProtocolCommand(SubscribeCommand.Command);
+            AddProtocolCommand(UnsubscribeCommand.Command);
+            AddProtocolCommand(SetLastWillCommand.Command);
         }
 
         private uint GenerateStoredAwaiter()
@@ -163,7 +163,7 @@ namespace xMQ
                 msg.Append(ConnectionId);
 
             var envelope = new Envelope(msg);
-            msg.Append(IdentityCommand.CODE);
+            msg.Append(IdentityCommand.Command);
 
             if (!socket.Send(envelope.ToByteArray()))
                 throw new Exception("Não foi possível realizar a identificação");
@@ -191,7 +191,7 @@ namespace xMQ
                 originalEnvelope.Move(0);
                 var command = originalEnvelope.ReadNext<byte>();
 
-                isReply = command == RequestCommand.CODE;
+                isReply = command == RequestCommand.Command;
 
                 if(isReply)
                     msgId = originalEnvelope.ReadNext<uint>();
@@ -199,11 +199,11 @@ namespace xMQ
 
             if(isReply && msgId > 0)
             {
-                envelopeToSend.Append(ReplyCommand.CODE);
+                envelopeToSend.Append(ReplyCommand.Command);
                 envelopeToSend.Append(msgId);
             } else
             {
-                envelopeToSend.Append(NoneCommand.CODE);
+                envelopeToSend.Append(NoneCommand.Command);
             }
 
             return socket.Send(envelopeToSend.ToByteArray());
@@ -220,7 +220,7 @@ namespace xMQ
         public bool Publish(string queue, Message msg)
         {
             var msgPack = new Envelope(msg);
-            msgPack.Append(PublishCommand.CODE);
+            msgPack.Append(PublishCommand.Command);
             msgPack.Append(queue);
 
             return socket.Send(msgPack.ToByteArray());
@@ -229,7 +229,7 @@ namespace xMQ
         public bool Subscribe(string queue, PubSubQueueLostType lostType)
         {
             var msgPack = new Envelope();
-            msgPack.Append(SubscribeCommand.CODE);
+            msgPack.Append(SubscribeCommand.Command);
             msgPack.Append(queue);
             msgPack.Append((byte) lostType);
 
@@ -239,7 +239,7 @@ namespace xMQ
         public bool Unsubscribe(string queue)
         {
             var msgPack = new Envelope();
-            msgPack.Append(SubscribeCommand.CODE);
+            msgPack.Append(SubscribeCommand.Command);
             msgPack.Append(queue);
 
             return socket.Send(msgPack.ToByteArray());
@@ -248,7 +248,7 @@ namespace xMQ
         public bool SetLastWill(string queue, Message msg)
         {
             var msgPack = new Envelope(msg);
-            msgPack.Append(SetLastWillCommand.CODE);
+            msgPack.Append(SetLastWillCommand.Command);
             msgPack.Append(queue);
 
             return socket.Send(msgPack.ToByteArray());
@@ -267,7 +267,7 @@ namespace xMQ
             var responseAwaiter = StoredResponses[msgId];
 
             var envelop = new Envelope(msg);
-            envelop.Append(RequestCommand.CODE);
+            envelop.Append(RequestCommand.Command);
             envelop.Append(msgId);
 
             var networkSuccess = socket.Send(envelop.ToByteArray());
@@ -348,9 +348,11 @@ namespace xMQ
 
         private void HandleDisconnect(PairSocket remotePair)
         {
-            OnClientDisconnect?.Invoke(remotePair);
-            remotePair.Close();
+            if (remotePair.LastWill != null)
+                ProtocolHandler.HandleMessage(this, remotePair, remotePair.LastWill);
 
+
+            //Remove subscribers do cliente caso não seja do tipo Persistent
             List<PubSubQueue> queuesByPair;
             if (SubscriberSockets.TryGetValue(remotePair, out queuesByPair))
             {
@@ -364,10 +366,17 @@ namespace xMQ
                 }
             }
 
-            if(remotePair.LastWill != null)
-                ProtocolHandler.HandleMessage(this, remotePair, remotePair.LastWill);
+            //Caso seja um cliente, libera os recursos alocados por ele
+            if(remotePair != this)
+            {
+                WrappedSocketsMap.Remove(remotePair.Socket);
+                IdentityConnectionSocketsMap.Remove(remotePair);
+                remotePair.Dispose();
+            }
 
-            remotePair.Dispose();
+            remotePair.Close();
+
+            OnClientDisconnect?.Invoke(remotePair);
         }
 
         protected override void OnRemoteConnected(ISocket remote)
@@ -384,6 +393,7 @@ namespace xMQ
         {
             WrappedSocketsMap.Clear();
             IdentitySocketsMap.Clear();
+            IdentityConnectionSocketsMap.Clear();
             StoredResponses.Clear();
             StopProtocolJobs();
             socket?.Dispose();

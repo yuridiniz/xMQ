@@ -7,7 +7,19 @@ namespace xMQ.Protocol
 {
     internal class SubscribeCommand : ProtocolCommand
     {
-        public const byte CODE = 7;
+        private SubscribeCommand()
+        {
+        }
+
+        private static SubscribeCommand _command;
+        public static SubscribeCommand Command
+        {
+            get
+            {
+                if (_command == null) _command = new SubscribeCommand();
+                return _command;
+            }
+        }
 
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {

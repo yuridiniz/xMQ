@@ -8,7 +8,19 @@ namespace xMQ.Protocol
 {
     internal class PublishCommand : ProtocolCommand
     {
-        public const byte CODE = 5;
+        private PublishCommand()
+        {
+        }
+
+        private static PublishCommand _command;
+        public static PublishCommand Command
+        {
+            get
+            {
+                if (_command == null) _command = new PublishCommand();
+                return _command;
+            }
+        }
 
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {
@@ -26,7 +38,7 @@ namespace xMQ.Protocol
             var senderDate = DateConverter.ConvertToUnixTimestamp(DateTime.Now);
 
             var queueEnvelop = new Envelope(envelop.GetMessage());
-            queueEnvelop.Append(MsgPublishedCommand.CODE);
+            queueEnvelop.Append(PublishDeliveredCommand.Command);
             queueEnvelop.Append(queue);
             queueEnvelop.Append((byte)PubSubQueueLostType.None);
 
@@ -39,7 +51,7 @@ namespace xMQ.Protocol
             }
 
             var lastMsg = new Envelope(envelop.GetMessage());
-            queueEnvelop.Append(MsgPublishedCommand.CODE);
+            queueEnvelop.Append(PublishDeliveredCommand.Command);
             queueEnvelop.Append(queue);
             queueEnvelop.Append((byte)PubSubQueueLostType.LastMessage);
             queueEnvelop.Append(senderDate);

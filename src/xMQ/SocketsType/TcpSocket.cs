@@ -149,30 +149,30 @@ namespace xMQ.SocketsType
 
                 try
                 {
-
                     Socket.Select(SocketsSelector, null, SocketsErrors, -1);
-
-                    for (var i = 0; i < SocketsSelector.Count; i++)
-                    {
-                        var socketSpeaker = SocketsSelector[i];
-                        var bytes = ConnectionController?.HandleMesage(SocketMapper.GetISocket(socketSpeaker));
-                        if (bytes == 0)
-                        {
-                            SocketMapper.RemoveISocketMapper(socketSpeaker);
-                            clients.Remove(socketSpeaker);
-                        }
-                    }
                 }
                 catch (Exception ex)
                 {
-                    for (var i = 0; i < SocketsErrors.Count; i++)
-                    {
-                        var socketError = SocketsErrors[i];
+                }
 
-                        ConnectionController?.HandleError(SocketMapper.GetISocket(socketError));
-                        SocketMapper.RemoveISocketMapper(socketError);
-                        clients.Remove(socketError);
+                for (var i = 0; i < SocketsSelector.Count; i++)
+                {
+                    var socketSpeaker = SocketsSelector[i];
+                    var bytes = ConnectionController?.HandleMesage(SocketMapper.GetISocket(socketSpeaker));
+                    if (bytes == 0)
+                    {
+                        SocketMapper.RemoveISocketMapper(socketSpeaker);
+                        clients.Remove(socketSpeaker);
                     }
+                }
+
+                for (var i = 0; i < SocketsErrors.Count; i++)
+                {
+                    var socketError = SocketsErrors[i];
+
+                    ConnectionController?.HandleError(SocketMapper.GetISocket(socketError));
+                    SocketMapper.RemoveISocketMapper(socketError);
+                    clients.Remove(socketError);
                 }
             }
 

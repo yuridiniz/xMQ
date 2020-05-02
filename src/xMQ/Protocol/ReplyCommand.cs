@@ -8,8 +8,19 @@ namespace xMQ.Protocol
 {
     internal class ReplyCommand : ProtocolCommand
     {
-        public const byte CODE = 4;
+        private ReplyCommand()
+        {
+        }
 
+        private static ReplyCommand _command;
+        public static ReplyCommand Command
+        {
+            get
+            {
+                if (_command == null) _command = new ReplyCommand();
+                return _command;
+            }
+        }
 
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {

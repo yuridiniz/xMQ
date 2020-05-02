@@ -11,7 +11,19 @@ namespace xMQ.Protocol
     /// </summary>
     internal class IdentityResultCommand : ProtocolCommand
     {
-        public const byte CODE = 2;
+        private IdentityResultCommand()
+        {
+        }
+
+        private static IdentityResultCommand _command;
+        public static IdentityResultCommand Command
+        {
+            get
+            {
+                if (_command == null) _command = new IdentityResultCommand();
+                return _command;
+            }
+        }
 
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {
