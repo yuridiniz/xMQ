@@ -1,16 +1,44 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Sockets;
 using System.Text;
+using xMQ.Protocol;
 using xMQ.SocketsType;
 
 namespace xMQ
 {
     public abstract class SocketProtocolController
     {
+        protected ProtocolHandler ProtocolHandler { get; set; }
+
+        internal ISocket Socket { get => socket; }
+
         protected ISocket socket;
+
         private Uri serverUri;
         private Uri pairAddressUri;
+
+        public SocketProtocolController()
+        {
+            ProtocolHandler = new ProtocolHandler();
+        }
+
+
+        public void AddProtocolCommand(ProtocolCommand customProtocol)
+        {
+
+            var nextCode = ProtocolHandler.SupportedProtocol.Count;
+            if(nextCode != 0)
+                nextCode = ProtocolHandler.SupportedProtocol.Keys.Max() + 1;
+
+            if (nextCode > byte.MaxValue)
+                throw new InvalidOperationException("Limite de protocolos atingido");
+
+            customProtocol.CODE = (byte)nextCode;
+            ProtocolHandler.SupportedProtocol.Add(customProtocol.CODE, customProtocol);
+        }
+
 
         protected Uri ValidateAddress(string serverAddress)
         {
@@ -140,17 +168,35 @@ namespace xMQ
 
         internal int HandleMesage(ISocket remote)
         {
-            return OnRemoteMessage(remote);
+            try
+            {
+                return OnRemoteMessage(remote);
+            } catch (Exception ex)
+            {
+                return -1;
+            }
         }
 
         internal void HandleConnection(ISocket remote)
         {
-            OnRemoteConnected(remote);
+            try
+            {
+                OnRemoteConnected(remote);
+            }
+            catch (Exception ex)
+            {
+            }
         }
 
         internal void HandleError(ISocket remote)
         {
-            OnError(remote);
+            try
+            {
+                OnError(remote);
+            } catch(Exception ex)
+            {
+
+            }
         }
 
         protected abstract int OnRemoteMessage(ISocket remote);

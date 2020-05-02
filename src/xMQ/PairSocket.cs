@@ -6,7 +6,6 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using xMQ.Extension;
 using xMQ.Protocol;
 using xMQ.PubSubProtocol;
 using xMQ.SocketsType;
@@ -18,8 +17,6 @@ namespace xMQ
     {
         private uint nextMessageId;
 
-        private ProtocolHandler protocolHandler;
-
         public delegate void ClientConnection(PairSocket socket);
         public ClientConnection OnClientConnection;
 
@@ -28,8 +25,6 @@ namespace xMQ
 
         public delegate void MessageHandler(Message msg, PairSocket socket, MessageData queue);
         public MessageHandler OnMessage;
-
-        internal ISocket Socket { get => socket; }
 
         internal Dictionary<ISocket, PairSocket> WrappedSocketsMap { get; }
 
@@ -47,12 +42,14 @@ namespace xMQ
 
         public PairSocket()
         {
-            protocolHandler = new ProtocolHandler();
             StoredResponses = new Dictionary<uint, ResponseAwaiter>();
             IdentitySocketsMap = new Dictionary<byte[], PairSocket>();
             IdentityConnectionSocketsMap = new Dictionary<PairSocket, byte[]>();
             WrappedSocketsMap = new Dictionary<ISocket, PairSocket>();
             Queue = new Dictionary<string, PubSubQueue>();
+            SubscriberSockets = new Dictionary<PairSocket, List<PubSubQueue>>();
+
+            InitSupportedProtocolHeader();
 
             //Task.Run(() => { KeepAlive(); });
         }
@@ -67,6 +64,21 @@ namespace xMQ
             :this()
         {
             socket = _socket;
+        }
+
+
+        private void InitSupportedProtocolHeader()
+        {
+            AddProtocolCommand(new NoneCommand());
+            AddProtocolCommand(new IdentityCommand());
+            AddProtocolCommand(new IdentityResultCommand());
+            AddProtocolCommand(new RequestCommand());
+            AddProtocolCommand(new ReplyCommand());
+            AddProtocolCommand(new PublishCommand());
+            AddProtocolCommand(new MsgPublishedCommand());
+            AddProtocolCommand(new SubscribeCommand());
+            AddProtocolCommand(new UnsubscribeCommand());
+            AddProtocolCommand(new SetLastWillCommand());
         }
 
         private uint GenerateStoredAwaiter()
@@ -167,7 +179,7 @@ namespace xMQ
         public bool Send(Message msg)
         {
             if (socket == null)
-                throw new NotSupportedException("There is no connection established, use the Connect() or Bind() method to initiate a connection");
+                return false;
 
             var originalEnvelope = msg.Envelope;
             var envelopeToSend = new Envelope(msg);
@@ -214,7 +226,6 @@ namespace xMQ
             return socket.Send(msgPack.ToByteArray());
         }
 
-        
         public bool Subscribe(string queue, PubSubQueueLostType lostType)
         {
             var msgPack = new Envelope();
@@ -243,10 +254,14 @@ namespace xMQ
             return socket.Send(msgPack.ToByteArray());
         }
 
-        public Message Request(Message msg, int millisecondsTimeout = -1)
+        public Message Request(Message msg, int millisecondsTimeout = 500)
         {
             if (socket == null)
-                throw new NotSupportedException("There is no connection established, use the Connect() or Bind() method to initiate a connection");
+            {
+                var errorPackage = new Message();
+                errorPackage.Success = false;
+                return errorPackage;
+            }
 
             var msgId = GenerateStoredAwaiter();
             var responseAwaiter = StoredResponses[msgId];
@@ -300,34 +315,17 @@ namespace xMQ
 
         public List<PairSocket> GetAllClients()
         {
-            if (socket == null)
-                throw new NotSupportedException("There is no connection established, use the Connect() or Bind() method to initiate a connection");
-
             return WrappedSocketsMap.Values.ToList();
         }
 
         public PairSocket GetClient<T>(T identifier)
         {
-            if (socket == null)
-                throw new NotSupportedException("There is no connection established, use the Connect() or Bind() method to initiate a connection");
-
             var key = GenericBitConverter.GetBytes(identifier);
 
             PairSocket pairSocket;
             IdentitySocketsMap.TryGetValue(key, out pairSocket);
 
             return pairSocket;
-        }
-
-        public void AddProtocolCommand(ExtendableProtocolCommand customProtocol)
-        {
-            var nextCode = protocolHandler.SupportedProtocol.Keys.Max() + 1;
-
-            if (nextCode > byte.MaxValue)
-                throw new InvalidOperationException("Limite de protocolos atingido");
-
-            customProtocol.CODE = (byte)nextCode;
-            protocolHandler.SupportedProtocol.Add(customProtocol.CODE, customProtocol);
         }
 
         protected override int OnRemoteMessage(ISocket remote)
@@ -343,7 +341,7 @@ namespace xMQ
             }
             else
             {
-                protocolHandler.HandleMessage(this, remotePair, envelope);
+                ProtocolHandler.HandleMessage(this, remotePair, envelope);
                 return envelope.Length;
             }
         }
@@ -367,7 +365,7 @@ namespace xMQ
             }
 
             if(remotePair.LastWill != null)
-                protocolHandler.HandleMessage(this, remotePair, remotePair.LastWill);
+                ProtocolHandler.HandleMessage(this, remotePair, remotePair.LastWill);
 
             remotePair.Dispose();
         }

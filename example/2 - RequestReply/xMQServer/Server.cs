@@ -19,6 +19,8 @@ namespace xMQExample
 
         private void Start()
         {
+            Console.Title = "Server";
+
             pairSocket = new PairSocket();
 
             while (true)
@@ -73,7 +75,7 @@ namespace xMQExample
                     {
                         var client = clients[0];
 
-                        var response = client.Request(package, 10); //10ms Timeout
+                        var response = client.Request(package);
                         if (response.Success)
                         {
                             Console.WriteLine(">>> Response:");

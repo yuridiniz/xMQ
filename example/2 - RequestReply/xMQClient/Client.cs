@@ -17,18 +17,21 @@ namespace xMQExample
 
             var client = new Client();
             client.Start();
-            
         }
 
         private void Start()
         {
             pairSocket = new PairSocket();
+            pairSocket.OnClientDisconnect += OnDisconnected;
+            pairSocket.OnMessage += OnMessage;
 
             while (true)
             {
                 var success = pairSocket.TryConnect("tcp://127.0.0.1:5001", 500);
                 if (success)
                 {
+                    Console.Title = "Client: " + pairSocket.ConnectionId;
+
                     // Tokens podem ser adicioandos assim também
                     var msg = new Message(1, "Hello Server :)");
                     pairSocket.Send(msg);
@@ -59,6 +62,15 @@ namespace xMQExample
             }
         }
 
+        private void OnDisconnected(PairSocket socket)
+        {
+            bool connected = false;
+            while (!connected)
+            {
+                connected = socket.TryReconnect();
+            }
+        }
+
         /// <summary>
         /// My basic protocol send first frame with a uint, this contains the command
         /// </summary>
@@ -72,7 +84,6 @@ namespace xMQExample
             Console.WriteLine("> 3: Envia um Echo");
             Console.WriteLine("> ");
 
-            pairSocket.OnMessage += OnMessage;
 
             var keepCommunication = true;
             while (keepCommunication)
@@ -84,7 +95,6 @@ namespace xMQExample
                 uint opCode;
                 if(uint.TryParse(operation, out opCode))
                 {
-                    pairSocket.TryReconnect(5000);
                     Console.Write("> Mensagem (string): ");
                     var txtMessage = Console.ReadLine();
 
@@ -92,7 +102,7 @@ namespace xMQExample
                     package.Append(opCode);
                     package.Append(txtMessage);
 
-                    var response = pairSocket.Request(package, 10); //2ms Timeout
+                    var response = pairSocket.Request(package);
                     if (response.Success)
                     {
                         Console.WriteLine(">>> Response:");

@@ -15,7 +15,7 @@ namespace xMQ.SocketsType
     {
         public const string SCHEME = "tcp";
 
-        private ManualResetEvent resetEvent;
+        private ManualResetEventSlim resetEvent;
         private Socket socket;
         private List<Socket> clients;
 
@@ -23,10 +23,11 @@ namespace xMQ.SocketsType
 
         public SocketProtocolController ConnectionController { get; }
         public List<Socket> SocketsSelector { get; private set; } = new List<Socket>();
+        public List<Socket> SocketsErrors { get; private set; } = new List<Socket>();
 
         public TcpSocket()
         {
-            resetEvent = new ManualResetEvent(false);
+            resetEvent = new ManualResetEventSlim(false);
             clients = new List<Socket>();
         }
 
@@ -135,15 +136,21 @@ namespace xMQ.SocketsType
             while (ServerRunning)
             {
                 if (clients.Count == 0)
-                    resetEvent.WaitOne(-1);
+                {
+                    resetEvent.Reset();
+                    resetEvent.Wait(-1);
+                }
 
                 SocketsSelector.Clear();
+                SocketsErrors.Clear();
+
                 SocketsSelector.AddRange(clients);
+                SocketsErrors.AddRange(clients);
 
                 try
                 {
-                    var socketSelector = new List<Socket>(clients);
-                    Socket.Select(SocketsSelector, null, null, 25000);
+
+                    Socket.Select(SocketsSelector, null, SocketsErrors, -1);
 
                     for (var i = 0; i < SocketsSelector.Count; i++)
                     {
@@ -155,11 +162,18 @@ namespace xMQ.SocketsType
                             clients.Remove(socketSpeaker);
                         }
                     }
-                } catch (Exception ex)
-                {
-
                 }
-               
+                catch (Exception ex)
+                {
+                    for (var i = 0; i < SocketsErrors.Count; i++)
+                    {
+                        var socketError = SocketsErrors[i];
+
+                        ConnectionController?.HandleError(SocketMapper.GetISocket(socketError));
+                        SocketMapper.RemoveISocketMapper(socketError);
+                        clients.Remove(socketError);
+                    }
+                }
             }
 
             while (ClientRunning)
@@ -168,7 +182,6 @@ namespace xMQ.SocketsType
                 {
                     ConnectionController?.HandleMesage(null);
                 }
-
             }
         }
 
