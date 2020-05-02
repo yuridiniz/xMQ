@@ -7,7 +7,7 @@ Provides a message queue with the purpose of being simple, performative and effe
    - [Asynchronous](#send-and-receive-mensage)
    - [Request/Reply](#send-and-receive-mensage)
    - [Pub/Sub](#send-and-receive-mensage)
-* [Delivery guarantee](#send-and-receive-mensage) 
+   - [Last Will](#send-and-receive-mensage)
 * [Extending the xMQ](#send-and-receive-mensage)
 * [Protocol Supported](#send-and-receive-mensage)
    - [TCP](#send-and-receive-mensage)
