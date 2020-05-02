@@ -106,17 +106,21 @@ namespace xMQ.SocketsType
             {
                 if (socket.Poll(-1, SelectMode.SelectRead))
                 {
-                    var clientSocket = socket.Accept();
-                    clients.Add(clientSocket);
+                    var task = socket.AcceptAsync();
+                    task.ContinueWith((taskResult) =>
+                    {
+                        var clientSocket = taskResult.Result;
 
-                    var tcpClient = new TcpSocket(clientSocket);
+                        clients.Add(clientSocket);
 
-                    SocketMapper.Mapper(clientSocket, tcpClient);
+                        var tcpClient = new TcpSocket(clientSocket);
 
-                    ConnectionController?.HandleConnection(tcpClient);
+                        SocketMapper.Mapper(clientSocket, tcpClient);
 
-                    resetEvent.Set();
+                        ConnectionController?.HandleConnection(tcpClient);
 
+                        resetEvent.Set();
+                    });
                 }
                 else if (socket.Poll(10, SelectMode.SelectError))
                 {
@@ -172,7 +176,10 @@ namespace xMQ.SocketsType
         {
             try
             {
-                socket.Send(msg);
+                var sendEvent = new SocketAsyncEventArgs();
+                sendEvent.SetBuffer(msg, 0, msg.Length);
+                socket.SendAsync(sendEvent);
+
                 return true;
             }
             catch (SocketException ex)

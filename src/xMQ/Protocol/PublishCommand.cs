@@ -35,17 +35,7 @@ namespace xMQ.Protocol
                 if (item.PairSocket == remote)
                     continue;
 
-                var success = item.PairSocket.Socket.Send(queueEnvelop.ToByteArray());
-                if (!success && item.LostType == PubSubQueueLostType.Persitent)
-                {
-                    var droppedEnvelop = new Envelope(envelop.GetMessage());
-                    droppedEnvelop.Append(MsgPublishedCommand.CODE);
-                    droppedEnvelop.Append(queue);
-                    droppedEnvelop.Append((byte)PubSubQueueLostType.Persitent);
-                    droppedEnvelop.Append(senderDate);
-
-                    item.AddDropedMessage(droppedEnvelop);
-                }
+                item.PairSocket.Socket.Send(queueEnvelop.ToByteArray());
             }
 
             var lastMsg = new Envelope(envelop.GetMessage());

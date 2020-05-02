@@ -38,9 +38,12 @@ namespace xMQ
         internal Dictionary<PairSocket, byte[]> IdentityConnectionSocketsMap { get; }
 
         internal Dictionary<string, PubSubQueue> Queue { get; }
-        public Guid ConnectionId { get; internal set; }
+        internal Dictionary<PairSocket, List<PubSubQueue>> SubscriberSockets { get; }
 
         internal ManualResetEventSlim idAwaiter = new ManualResetEventSlim(false);
+
+        public Guid ConnectionId { get; internal set; }
+        internal Envelope LastWill { get; set; }
 
         public PairSocket()
         {
@@ -52,7 +55,6 @@ namespace xMQ
             Queue = new Dictionary<string, PubSubQueue>();
 
             //Task.Run(() => { KeepAlive(); });
-            //TODO Start Queue Cleaner
         }
 
         public PairSocket(Guid identifier)
@@ -326,8 +328,7 @@ namespace xMQ
 
             if (envelope == null)
             {
-                OnClientDisconnect?.Invoke(remotePair);
-                remotePair.Close();
+                HandleDisconnect(remotePair);
                 return 0;
             }
             else
@@ -335,6 +336,30 @@ namespace xMQ
                 protocolHandler.HandleMessage(this, remotePair, envelope);
                 return envelope.Length;
             }
+        }
+
+        private void HandleDisconnect(PairSocket remotePair)
+        {
+            OnClientDisconnect?.Invoke(remotePair);
+            remotePair.Close();
+
+            List<PubSubQueue> queuesByPair;
+            if (SubscriberSockets.TryGetValue(remotePair, out queuesByPair))
+            {
+                for (var i = 0; i < queuesByPair.Count; i++)
+                {
+                    var queue = queuesByPair[i];
+                    queue.RemoveSubscriber(remotePair, false);
+                    if (queue.CanDispose)
+                        Queue.Remove(queue.Name);
+
+                }
+            }
+
+            if(remotePair.LastWill != null)
+                protocolHandler.HandleMessage(this, remotePair, remotePair.LastWill);
+
+            remotePair.Dispose();
         }
 
         protected override void OnRemoteConnected(ISocket remote)

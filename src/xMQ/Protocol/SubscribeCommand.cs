@@ -15,11 +15,14 @@ namespace xMQ.Protocol
             var lostMessageType = envelop.ReadNext<byte>();
 
             PubSubQueue queue;
+
             lock (me.Queue)
             {
                 if (!me.Queue.ContainsKey(queueName))
                 {
                     queue = new PubSubQueue();
+                    queue.Name = queueName;
+
                     me.Queue[queueName] = queue;
                 }
                 else
@@ -28,10 +31,29 @@ namespace xMQ.Protocol
                 }
             }
 
-            var subsConfig = new PairSocketSubscribe(remote, (PubSubQueueLostType) lostMessageType);
-            var dropedMessages = queue.AddSubscriber(subsConfig);
+            List<PubSubQueue> queuesByPair;
+            lock (me.SubscriberSockets)
+            {
+                if (!me.SubscriberSockets.ContainsKey(remote))
+                {
+                    queuesByPair = new List<PubSubQueue>();
+                    me.SubscriberSockets[remote] = queuesByPair;
+                } else
+                {
+                    queuesByPair = me.SubscriberSockets[remote];
+                }
+            }
 
-            if(dropedMessages != null)
+            var subsConfig = new PairSocketSubscribe(remote, (PubSubQueueLostType) lostMessageType);
+
+            bool hasConfiguration = false;
+            var dropedMessages = queue.AddSubscriber(subsConfig, out hasConfiguration);
+
+            // Caso seja uma nova fila para o usuário adiciona na lista de filas que ele está
+            if(!hasConfiguration)
+                queuesByPair.Add(queue);
+
+            if (dropedMessages != null)
             {
                 lock(dropedMessages)
                 {

@@ -7,7 +7,7 @@ namespace xMQ
     public enum PubSubQueueLostType : byte
     {
         None = 0,
-        Persitent = 1,
-        LastMessage = 2,
+        LastMessage = 1,
+        Persistent = 2,
     }
 }
