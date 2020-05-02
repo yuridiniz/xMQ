@@ -69,16 +69,16 @@ namespace xMQ
 
         private void InitSupportedProtocolHeader()
         {
-            AddProtocolCommand(NoneCommand.Command);
-            AddProtocolCommand(IdentityCommand.Command);
-            AddProtocolCommand(IdentityResultCommand.Command);
-            AddProtocolCommand(RequestCommand.Command);
-            AddProtocolCommand(ReplyCommand.Command);
-            AddProtocolCommand(PublishCommand.Command);
-            AddProtocolCommand(PublishDeliveredCommand.Command);
-            AddProtocolCommand(SubscribeCommand.Command);
-            AddProtocolCommand(UnsubscribeCommand.Command);
-            AddProtocolCommand(SetLastWillCommand.Command);
+            AddProtocolCommand(NoneProtocol.Command);
+            AddProtocolCommand(IdentityProtocol.Command);
+            AddProtocolCommand(IdentityResultProtocol.Command);
+            AddProtocolCommand(RequestProtocol.Command);
+            AddProtocolCommand(ReplyProtocol.Command);
+            AddProtocolCommand(PublishProtocol.Command);
+            AddProtocolCommand(PublishDeliveredProtocol.Command);
+            AddProtocolCommand(SubscribeProtocol.Command);
+            AddProtocolCommand(UnsubscribeProtocol.Command);
+            AddProtocolCommand(SetLastWillProtocol.Command);
         }
 
         private uint GenerateStoredAwaiter()
@@ -163,7 +163,7 @@ namespace xMQ
                 msg.Append(ConnectionId);
 
             var envelope = new Envelope(msg);
-            msg.Append(IdentityCommand.Command);
+            msg.Append(IdentityProtocol.Command);
 
             if (!socket.Send(envelope.ToByteArray()))
                 throw new Exception("Não foi possível realizar a identificação");
@@ -191,7 +191,7 @@ namespace xMQ
                 originalEnvelope.Move(0);
                 var command = originalEnvelope.ReadNext<byte>();
 
-                isReply = command == RequestCommand.Command;
+                isReply = command == RequestProtocol.Command;
 
                 if(isReply)
                     msgId = originalEnvelope.ReadNext<uint>();
@@ -199,11 +199,11 @@ namespace xMQ
 
             if(isReply && msgId > 0)
             {
-                envelopeToSend.Append(ReplyCommand.Command);
+                envelopeToSend.Append(ReplyProtocol.Command);
                 envelopeToSend.Append(msgId);
             } else
             {
-                envelopeToSend.Append(NoneCommand.Command);
+                envelopeToSend.Append(NoneProtocol.Command);
             }
 
             return socket.Send(envelopeToSend.ToByteArray());
@@ -220,7 +220,7 @@ namespace xMQ
         public bool Publish(string queue, Message msg)
         {
             var msgPack = new Envelope(msg);
-            msgPack.Append(PublishCommand.Command);
+            msgPack.Append(PublishProtocol.Command);
             msgPack.Append(queue);
 
             return socket.Send(msgPack.ToByteArray());
@@ -229,7 +229,7 @@ namespace xMQ
         public bool Subscribe(string queue, PubSubQueueLostType lostType)
         {
             var msgPack = new Envelope();
-            msgPack.Append(SubscribeCommand.Command);
+            msgPack.Append(SubscribeProtocol.Command);
             msgPack.Append(queue);
             msgPack.Append((byte) lostType);
 
@@ -239,7 +239,7 @@ namespace xMQ
         public bool Unsubscribe(string queue)
         {
             var msgPack = new Envelope();
-            msgPack.Append(SubscribeCommand.Command);
+            msgPack.Append(SubscribeProtocol.Command);
             msgPack.Append(queue);
 
             return socket.Send(msgPack.ToByteArray());
@@ -248,7 +248,7 @@ namespace xMQ
         public bool SetLastWill(string queue, Message msg)
         {
             var msgPack = new Envelope(msg);
-            msgPack.Append(SetLastWillCommand.Command);
+            msgPack.Append(SetLastWillProtocol.Command);
             msgPack.Append(queue);
 
             return socket.Send(msgPack.ToByteArray());
@@ -267,7 +267,7 @@ namespace xMQ
             var responseAwaiter = StoredResponses[msgId];
 
             var envelop = new Envelope(msg);
-            envelop.Append(RequestCommand.Command);
+            envelop.Append(RequestProtocol.Command);
             envelop.Append(msgId);
 
             var networkSuccess = socket.Send(envelop.ToByteArray());

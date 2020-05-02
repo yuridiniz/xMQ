@@ -6,18 +6,18 @@ using xMQ.Util;
 
 namespace xMQ.Protocol
 {
-    internal class PublishDeliveredCommand : ProtocolCommand
+    internal class PublishDelivered : ProtocolCommand
     {
-        private PublishDeliveredCommand()
+        private PublishDelivered()
         {
         }
 
-        private static PublishDeliveredCommand _command;
-        public static PublishDeliveredCommand Command
+        private static PublishDelivered _command;
+        public static PublishDelivered Command
         {
             get
             {
-                if (_command == null) _command = new PublishDeliveredCommand();
+                if (_command == null) _command = new PublishDelivered();
                 return _command;
             }
         }

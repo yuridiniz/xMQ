@@ -9,18 +9,18 @@ namespace xMQ.Protocol
     /// <summary>
     /// Implementação para processamento de mensagem para identificação dos clientes
     /// </summary>
-    internal class IdentityCommand : ProtocolCommand
+    internal class Identity : ProtocolCommand
     {
-        private IdentityCommand()
+        private Identity()
         {
         }
 
-        private static IdentityCommand _command;
-        public static IdentityCommand Command
+        private static Identity _command;
+        public static Identity Command
         {
             get
             {
-                if (_command == null) _command = new IdentityCommand();
+                if (_command == null) _command = new Identity();
                 return _command;
             }
         }
@@ -59,7 +59,7 @@ namespace xMQ.Protocol
             msg.Append(identityArray);
 
             var envelope = new Envelope(msg);
-            envelope.Append(IdentityResultCommand.Command);
+            envelope.Append(IdentityResult.Command);
 
             remote.Socket.Send(envelope.ToByteArray());
         }

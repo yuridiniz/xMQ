@@ -7,29 +7,31 @@ using System.Threading.Tasks;
 namespace xMQ.Protocol
 {
     /// <summary>
-    /// Processa mensagens de comunicação normal
+    /// Implementação para processamento de mensagem para identificação dos clientes
     /// </summary>
-    internal class NoneCommand : ProtocolCommand
+    internal class IdentityResult : ProtocolCommand
     {
-        private NoneCommand()
+        private IdentityResult()
         {
         }
 
-        private static NoneCommand _command;
-        public static NoneCommand Command
+        private static IdentityResult _command;
+        public static IdentityResult Command
         {
             get
             {
-                if (_command == null) _command = new NoneCommand();
+                if (_command == null) _command = new IdentityResult();
                 return _command;
             }
         }
 
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {
-            me.OnMessage?.Invoke(envelop.GetMessage(), remote, null);
+            me.ConnectionId = envelop.ReadNext<Guid>();
+            me.idAwaiter.Set();
 
             return true;
         }
+
     }
 }

@@ -6,30 +6,30 @@ using System.Threading.Tasks;
 
 namespace xMQ.Protocol
 {
-    internal class RequestCommand : ProtocolCommand
+    /// <summary>
+    /// Processa mensagens de comunicação normal
+    /// </summary>
+    internal class None : ProtocolCommand
     {
-        private RequestCommand()
+        private None()
         {
         }
 
-        private static RequestCommand _command;
-        public static RequestCommand Command
+        private static None _command;
+        public static None Command
         {
             get
             {
-                if (_command == null) _command = new RequestCommand();
+                if (_command == null) _command = new None();
                 return _command;
             }
         }
 
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {
-            var msgId = envelop.ReadNext<uint>();
-
             me.OnMessage?.Invoke(envelop.GetMessage(), remote, null);
 
             return true;
         }
     }
-
 }

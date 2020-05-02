@@ -5,18 +5,18 @@ using xMQ.PubSubProtocol;
 
 namespace xMQ.Protocol
 {
-    internal class SubscribeCommand : ProtocolCommand
+    internal class SubscribeProtocol : ProtocolCommand
     {
-        private SubscribeCommand()
+        private SubscribeProtocol()
         {
         }
 
-        private static SubscribeCommand _command;
-        public static SubscribeCommand Command
+        private static SubscribeProtocol _command;
+        public static SubscribeProtocol Command
         {
             get
             {
-                if (_command == null) _command = new SubscribeCommand();
+                if (_command == null) _command = new SubscribeProtocol();
                 return _command;
             }
         }

@@ -6,18 +6,18 @@ using xMQ.Util;
 
 namespace xMQ.Protocol
 {
-    internal class PublishCommand : ProtocolCommand
+    internal class Publish : ProtocolCommand
     {
-        private PublishCommand()
+        private Publish()
         {
         }
 
-        private static PublishCommand _command;
-        public static PublishCommand Command
+        private static Publish _command;
+        public static Publish Command
         {
             get
             {
-                if (_command == null) _command = new PublishCommand();
+                if (_command == null) _command = new Publish();
                 return _command;
             }
         }
@@ -38,7 +38,7 @@ namespace xMQ.Protocol
             var senderDate = DateConverter.ConvertToUnixTimestamp(DateTime.Now);
 
             var queueEnvelop = new Envelope(envelop.GetMessage());
-            queueEnvelop.Append(PublishDeliveredCommand.Command);
+            queueEnvelop.Append(PublishDelivered.Command);
             queueEnvelop.Append(queue);
             queueEnvelop.Append((byte)PubSubQueueLostType.None);
 
@@ -51,7 +51,7 @@ namespace xMQ.Protocol
             }
 
             var lastMsg = new Envelope(envelop.GetMessage());
-            queueEnvelop.Append(PublishDeliveredCommand.Command);
+            queueEnvelop.Append(PublishDelivered.Command);
             queueEnvelop.Append(queue);
             queueEnvelop.Append((byte)PubSubQueueLostType.LastMessage);
             queueEnvelop.Append(senderDate);
