@@ -6,9 +6,21 @@ using xMQ.Util;
 
 namespace xMQ.Protocol
 {
-    internal class PublishCommand : ProtocolCommand
+    internal class Publish : ProtocolCommand
     {
-        public const byte CODE = 5;
+        private Publish()
+        {
+        }
+
+        private static Publish _command;
+        public static Publish Command
+        {
+            get
+            {
+                if (_command == null) _command = new Publish();
+                return _command;
+            }
+        }
 
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {
@@ -26,24 +38,20 @@ namespace xMQ.Protocol
             var senderDate = DateConverter.ConvertToUnixTimestamp(DateTime.Now);
 
             var queueEnvelop = new Envelope(envelop.GetMessage());
+            queueEnvelop.Append(PublishDelivered.Command);
             queueEnvelop.Append(queue);
             queueEnvelop.Append((byte)PubSubQueueLostType.None);
 
             foreach (var item in pubSubQueue.GetClients())
             {
-                var success = item.PairSocket.Send(queueEnvelop);
-                if (!success && item.LostType == PubSubQueueLostType.Persitent)
-                {
-                    var droppedEnvelop = new Envelope(envelop.GetMessage());
-                    droppedEnvelop.Append(queue);
-                    droppedEnvelop.Append((byte)PubSubQueueLostType.Persitent);
-                    droppedEnvelop.Append(senderDate);
+                if (item.PairSocket == remote)
+                    continue;
 
-                    item.AddDropedMessage(droppedEnvelop);
-                }
+                item.PairSocket.Socket.Send(queueEnvelop.ToByteArray());
             }
 
             var lastMsg = new Envelope(envelop.GetMessage());
+            queueEnvelop.Append(PublishDelivered.Command);
             queueEnvelop.Append(queue);
             queueEnvelop.Append((byte)PubSubQueueLostType.LastMessage);
             queueEnvelop.Append(senderDate);

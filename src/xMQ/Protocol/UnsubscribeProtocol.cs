@@ -5,9 +5,21 @@ using xMQ.PubSubProtocol;
 
 namespace xMQ.Protocol
 {
-    internal class UnsubscribeCommand : ProtocolCommand
+    internal class Unsubscribe : ProtocolCommand
     {
-        public const byte CODE = 8;
+        private Unsubscribe()
+        {
+        }
+
+        private static Unsubscribe _command;
+        public static Unsubscribe Command
+        {
+            get
+            {
+                if (_command == null) _command = new Unsubscribe();
+                return _command;
+            }
+        }
 
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {

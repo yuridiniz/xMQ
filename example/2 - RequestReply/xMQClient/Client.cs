@@ -13,27 +13,44 @@ namespace xMQExample
 
         static void Main(string[] args)
         {
+            Console.Title = "Client";
+
             var client = new Client();
             client.Start();
-            
         }
 
         private void Start()
         {
             pairSocket = new PairSocket();
+            pairSocket.OnClientDisconnect += OnDisconnected;
+            pairSocket.OnMessage += OnMessage;
 
             while (true)
             {
                 var success = pairSocket.TryConnect("tcp://127.0.0.1:5001", 500);
                 if (success)
                 {
+                    Console.Title = "Client: " + pairSocket.ConnectionId;
+
                     // Tokens podem ser adicioandos assim também
                     var msg = new Message(1, "Hello Server :)");
                     pairSocket.Send(msg);
 
+                    pairSocket.Subscribe("connecteds", PubSubQueueLostType.LastMessage);
+                    pairSocket.Publish("connecteds", new Message(0, "Chegando ae na area " + pairSocket.ConnectionId));
+                    pairSocket.SetLastWill("offline", new Message(0, "Meti o pé " + pairSocket.ConnectionId));
                     // Sleep apenas para que o Console não fique com mensagens misturadas e atrapalhe o entendimento do exemplo
                     // Em um cenário real, não precisaria de qualquer tipo de delay
-                    Thread.Sleep(500); 
+                    Thread.Sleep(500);
+
+                    //pairSocket.Close();
+
+                    //var _success = false;
+                    //while(!_success)
+                    //{
+                    //    Thread.Sleep(10000);
+                    //    success = pairSocket.TryReconnect();
+                    //}
 
                     DoCommunication();
 
@@ -42,6 +59,15 @@ namespace xMQExample
                     Console.WriteLine("> Conexão não foi estabelecida, pressione qualquer tecla para tentar novamente");
                     Console.ReadKey();
                 }
+            }
+        }
+
+        private void OnDisconnected(PairSocket socket)
+        {
+            bool connected = false;
+            while (!connected)
+            {
+                connected = socket.TryReconnect();
             }
         }
 
@@ -58,7 +84,6 @@ namespace xMQExample
             Console.WriteLine("> 3: Envia um Echo");
             Console.WriteLine("> ");
 
-            pairSocket.OnMessage += OnMessage;
 
             var keepCommunication = true;
             while (keepCommunication)
@@ -77,7 +102,7 @@ namespace xMQExample
                     package.Append(opCode);
                     package.Append(txtMessage);
 
-                    var response = pairSocket.Request(package, 10); //2ms Timeout
+                    var response = pairSocket.Request(package);
                     if (response.Success)
                     {
                         Console.WriteLine(">>> Response:");
@@ -99,6 +124,7 @@ namespace xMQExample
                 }
                 else
                 {
+                    pairSocket.Close();
                     Console.WriteLine("> Operação não é um valor válido, informe um uint válido");
                 }
             }

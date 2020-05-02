@@ -9,9 +9,21 @@ namespace xMQ.Protocol
     /// <summary>
     /// Processa mensagens de comunicação normal
     /// </summary>
-    internal class NoneCommand : ProtocolCommand
+    internal class None : ProtocolCommand
     {
-        public const byte CODE = 0;
+        private None()
+        {
+        }
+
+        private static None _command;
+        public static None Command
+        {
+            get
+            {
+                if (_command == null) _command = new None();
+                return _command;
+            }
+        }
 
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {

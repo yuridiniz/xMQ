@@ -7,6 +7,8 @@ namespace xMQ.PubSubProtocol
     internal class PubSubQueue
     {
         private uint persistentCount;
+
+        public string Name { get; internal set; }
         public bool HasPersistentSubscriber { get { return persistentCount > 0; } }
         public bool CanDispose { get { return IdentifierSubscriber.Count == 0; } }
 
@@ -14,18 +16,19 @@ namespace xMQ.PubSubProtocol
 
         private Dictionary<object, PairSocketSubscribe> IdentifierSubscriber { get; set; } = new Dictionary<object, PairSocketSubscribe>();
 
-        internal List<Envelope> AddSubscriber(PairSocketSubscribe subsConfig)
+        internal List<Envelope> AddSubscriber(PairSocketSubscribe subsConfig, out bool hasConfiguration)
         {
             lock (this)
             {
+                hasConfiguration = false;
                 List<Envelope> droppedMessages = null;
 
                 if (subsConfig.PairSocket.ConnectionId != null)
                 {
-                    if (subsConfig.LostType == PubSubQueueLostType.Persitent)
+                    if (subsConfig.LostType == PubSubQueueLostType.Persistent)
                     {
                         //Try get droped messages
-                        var hasConfiguration = IdentifierSubscriber.ContainsKey(subsConfig.PairSocket.ConnectionId);
+                        hasConfiguration = IdentifierSubscriber.ContainsKey(subsConfig.PairSocket.ConnectionId);
                         if (!hasConfiguration)
                             persistentCount++;
                         else
@@ -53,8 +56,9 @@ namespace xMQ.PubSubProtocol
                         return;
 
                     var subConfig = IdentifierSubscriber[subscriber.ConnectionId];
+                    subConfig.PairSocket = null;
 
-                    if (subConfig.LostType == PubSubQueueLostType.Persitent)
+                    if (subConfig.LostType == PubSubQueueLostType.Persistent)
                     {
                         if (forced)
                         {

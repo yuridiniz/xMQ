@@ -6,9 +6,21 @@ using xMQ.Util;
 
 namespace xMQ.Protocol
 {
-    internal class MsgPublishedCommand : ProtocolCommand
+    internal class PublishDelivered : ProtocolCommand
     {
-        public const byte CODE = 6;
+        private PublishDelivered()
+        {
+        }
+
+        private static PublishDelivered _command;
+        public static PublishDelivered Command
+        {
+            get
+            {
+                if (_command == null) _command = new PublishDelivered();
+                return _command;
+            }
+        }
 
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {

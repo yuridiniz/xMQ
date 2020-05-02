@@ -6,10 +6,21 @@ using System.Threading.Tasks;
 
 namespace xMQ.Protocol
 {
-    internal class RequestCommand : ProtocolCommand
+    internal class Request : ProtocolCommand
     {
-        public const byte CODE = 3;
+        private Request()
+        {
+        }
 
+        private static Request _command;
+        public static Request Command
+        {
+            get
+            {
+                if (_command == null) _command = new Request();
+                return _command;
+            }
+        }
 
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {

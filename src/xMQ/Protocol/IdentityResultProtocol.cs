@@ -9,9 +9,21 @@ namespace xMQ.Protocol
     /// <summary>
     /// Implementação para processamento de mensagem para identificação dos clientes
     /// </summary>
-    internal class IdentityResultCommand : ProtocolCommand
+    internal class IdentityResult : ProtocolCommand
     {
-        public const byte CODE = 2;
+        private IdentityResult()
+        {
+        }
+
+        private static IdentityResult _command;
+        public static IdentityResult Command
+        {
+            get
+            {
+                if (_command == null) _command = new IdentityResult();
+                return _command;
+            }
+        }
 
         public override bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelop)
         {

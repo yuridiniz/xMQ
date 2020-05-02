@@ -15,17 +15,19 @@ namespace xMQ.SocketsType
     {
         public const string SCHEME = "tcp";
 
-        private ManualResetEvent resetEvent;
+        private ManualResetEventSlim resetEvent;
         private Socket socket;
         private List<Socket> clients;
 
         public Uri UriAddress { get; }
 
-        public ISocketController ConnectionController { get; }
+        public SocketProtocolController ConnectionController { get; }
+        public List<Socket> SocketsSelector { get; private set; } = new List<Socket>();
+        public List<Socket> SocketsErrors { get; private set; } = new List<Socket>();
 
         public TcpSocket()
         {
-            resetEvent = new ManualResetEvent(false);
+            resetEvent = new ManualResetEventSlim(false);
             clients = new List<Socket>();
         }
 
@@ -35,14 +37,14 @@ namespace xMQ.SocketsType
             socket = _socket;
         }
 
-        public TcpSocket(Uri uri, ISocketController connectionController)
+        public TcpSocket(Uri uri, SocketProtocolController connectionController)
           : this()
         {
             UriAddress = uri;
             ConnectionController = connectionController;
         }
 
-        public TcpSocket(Socket _socket, ISocketController connectionController)
+        public TcpSocket(Socket _socket, SocketProtocolController connectionController)
             :this(_socket)
         {
             ConnectionController = connectionController;
@@ -101,26 +103,29 @@ namespace xMQ.SocketsType
 
         private void Listen()
         {
-            var delay = (int)TimeSpan.FromSeconds(1).TotalMilliseconds * 1000;
-
             while (ServerRunning)
             {
-                if (socket.Poll(delay, SelectMode.SelectRead))
+                if (socket.Poll(-1, SelectMode.SelectRead))
                 {
-                    var clientSocket = socket.Accept();
-                    var tcpClient = new TcpSocket(clientSocket);
+                    var task = socket.AcceptAsync();
+                    task.ContinueWith((taskResult) =>
+                    {
+                        var clientSocket = taskResult.Result;
 
-                    SocketMapper.Mapper(clientSocket, tcpClient);
+                        clients.Add(clientSocket);
 
-                    ConnectionController?.OnConnected(tcpClient);
+                        var tcpClient = new TcpSocket(clientSocket);
 
-                    clients.Add(clientSocket);
-                    resetEvent.Set();
+                        SocketMapper.Mapper(clientSocket, tcpClient);
 
+                        ConnectionController?.HandleConnection(tcpClient);
+
+                        resetEvent.Set();
+                    });
                 }
                 else if (socket.Poll(10, SelectMode.SelectError))
                 {
-                    ConnectionController?.OnError(this);
+                    ConnectionController?.HandleError(this);
                     break;
                 }
             }
@@ -131,15 +136,43 @@ namespace xMQ.SocketsType
             while (ServerRunning)
             {
                 if (clients.Count == 0)
-                    resetEvent.WaitOne(-1);
-
-                var socketSelector = new List<Socket>(clients);
-                Socket.Select(socketSelector, null, null, -1);
-
-                for (var i = 0; i < socketSelector.Count; i++)
                 {
-                    var socketSpeaker = socketSelector[i];
-                    ConnectionController?.OnMessage(SocketMapper.GetISocket(socketSpeaker));
+                    resetEvent.Reset();
+                    resetEvent.Wait(-1);
+                }
+
+                SocketsSelector.Clear();
+                SocketsErrors.Clear();
+
+                SocketsSelector.AddRange(clients);
+                SocketsErrors.AddRange(clients);
+
+                try
+                {
+                    Socket.Select(SocketsSelector, null, SocketsErrors, -1);
+                }
+                catch (Exception ex)
+                {
+                }
+
+                for (var i = 0; i < SocketsSelector.Count; i++)
+                {
+                    var socketSpeaker = SocketsSelector[i];
+                    var bytes = ConnectionController?.HandleMesage(SocketMapper.GetISocket(socketSpeaker));
+                    if (bytes == 0)
+                    {
+                        SocketMapper.RemoveISocketMapper(socketSpeaker);
+                        clients.Remove(socketSpeaker);
+                    }
+                }
+
+                for (var i = 0; i < SocketsErrors.Count; i++)
+                {
+                    var socketError = SocketsErrors[i];
+
+                    ConnectionController?.HandleError(SocketMapper.GetISocket(socketError));
+                    SocketMapper.RemoveISocketMapper(socketError);
+                    clients.Remove(socketError);
                 }
             }
 
@@ -147,18 +180,19 @@ namespace xMQ.SocketsType
             {
                 if (socket.Poll(-1, SelectMode.SelectRead))
                 {
-                    ConnectionController?.OnMessage(null);
+                    ConnectionController?.HandleMesage(null);
                 }
-
             }
         }
-
 
         public bool Send(byte[] msg)
         {
             try
             {
-                socket.Send(msg);
+                var sendEvent = new SocketAsyncEventArgs();
+                sendEvent.SetBuffer(msg, 0, msg.Length);
+                socket.SendAsync(sendEvent);
+
                 return true;
             }
             catch (SocketException ex)
