@@ -1,6 +1,9 @@
 # eXtendable Message Queue
 Provides a message queue with the purpose of being simple, performative and effective, and can be easily extended
 
+### Draft
+This project is not yet recommended for use in a production environment
+
 ### Summary
 
 * [Send and Receive mensage](#send-and-receive-mensage)
