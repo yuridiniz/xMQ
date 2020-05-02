@@ -8,7 +8,7 @@ namespace xMQ.Protocol
 {
     public abstract class ProtocolCommand
     {
-        public byte CODE { get; internal set; }
+        public int CODE { get; internal set; }
 
         public abstract bool HandleMessage(PairSocket me, PairSocket remote, Envelope envelope);
 
@@ -40,22 +40,22 @@ namespace xMQ.Protocol
             return !(item1 == item2);
         }
 
-        public static bool operator ==(byte item1, ProtocolCommand item2)
+        public static bool operator ==(int item1, ProtocolCommand item2)
         {
             return item1 == item2.CODE;
         }
 
-        public static bool operator !=(byte item1, ProtocolCommand item2)
+        public static bool operator !=(int item1, ProtocolCommand item2)
         {
             return !(item1 == item2);
         }
 
-        public static bool operator ==(ProtocolCommand item2, byte item1)
+        public static bool operator ==(ProtocolCommand item2, int item1)
         {
             return item1 == item2;
         }
 
-        public static bool operator !=(ProtocolCommand item2, byte item1)
+        public static bool operator !=(ProtocolCommand item2, int item1)
         {
             return item1 != item2;
         }

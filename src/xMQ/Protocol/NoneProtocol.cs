@@ -9,18 +9,18 @@ namespace xMQ.Protocol
     /// <summary>
     /// Processa mensagens de comunicação normal
     /// </summary>
-    internal class None : ProtocolCommand
+    internal class NoneProtocol : ProtocolCommand
     {
-        private None()
+        private NoneProtocol()
         {
         }
 
-        private static None _command;
-        public static None Command
+        private static NoneProtocol _command;
+        public static NoneProtocol Command
         {
             get
             {
-                if (_command == null) _command = new None();
+                if (_command == null) _command = new NoneProtocol();
                 return _command;
             }
         }

@@ -6,18 +6,18 @@ using System.Threading.Tasks;
 
 namespace xMQ.Protocol
 {
-    internal class Request : ProtocolCommand
+    internal class RequestProtocol : ProtocolCommand
     {
-        private Request()
+        private RequestProtocol()
         {
         }
 
-        private static Request _command;
-        public static Request Command
+        private static RequestProtocol _command;
+        public static RequestProtocol Command
         {
             get
             {
-                if (_command == null) _command = new Request();
+                if (_command == null) _command = new RequestProtocol();
                 return _command;
             }
         }

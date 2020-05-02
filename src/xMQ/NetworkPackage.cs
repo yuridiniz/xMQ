@@ -67,17 +67,13 @@ namespace xMQ
         public void Append(object value)
         {
             if (value is ProtocolCommand)
-            {
-                senderBuffer.Add(((ProtocolCommand)value).CODE);
-            }
-            else
-            {
-                senderBuffer.AddRange(GenericBitConverter.GetBytes(value));
+                value = ((ProtocolCommand)value).CODE;
 
-                if (value.GetType() == typeof(string))
-                {
-                    AppendEmptyFrame();
-                }
+            senderBuffer.AddRange(GenericBitConverter.GetBytes(value));
+
+            if (value.GetType() == typeof(string))
+            {
+                AppendEmptyFrame();
             }
         }
 

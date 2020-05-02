@@ -189,7 +189,7 @@ namespace xMQ
             if (originalEnvelope != null)
             {
                 originalEnvelope.Move(0);
-                var command = originalEnvelope.ReadNext<byte>();
+                var command = originalEnvelope.ReadNext<int>();
 
                 isReply = command == RequestProtocol.Command;
 
