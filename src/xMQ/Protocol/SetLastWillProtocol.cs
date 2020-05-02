@@ -5,18 +5,18 @@ using xMQ.PubSubProtocol;
 
 namespace xMQ.Protocol
 {
-    internal class SetLastWill : ProtocolCommand
+    internal class SetLastWillProtocol : ProtocolCommand
     {
-        private SetLastWill()
+        private SetLastWillProtocol()
         {
         }
 
-        private static SetLastWill _command;
-        public static SetLastWill Command
+        private static SetLastWillProtocol _command;
+        public static SetLastWillProtocol Command
         {
             get
             {
-                if (_command == null) _command = new SetLastWill();
+                if (_command == null) _command = new SetLastWillProtocol();
                 return _command;
             }
         }
@@ -42,7 +42,7 @@ namespace xMQ.Protocol
             }
 
             var lastWillEnvelop = new Envelope(envelop.GetMessage());
-            lastWillEnvelop.Append(PublishDelivered.Command);
+            lastWillEnvelop.Append(PublishDeliveredProtocol.Command);
             lastWillEnvelop.Append(queue);
             lastWillEnvelop.Append((byte)PubSubQueueLostType.None);
 

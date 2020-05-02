@@ -9,18 +9,18 @@ namespace xMQ.Protocol
     /// <summary>
     /// Implementação para processamento de mensagem para identificação dos clientes
     /// </summary>
-    internal class IdentityResult : ProtocolCommand
+    internal class IdentityResultProtocol : ProtocolCommand
     {
-        private IdentityResult()
+        private IdentityResultProtocol()
         {
         }
 
-        private static IdentityResult _command;
-        public static IdentityResult Command
+        private static IdentityResultProtocol _command;
+        public static IdentityResultProtocol Command
         {
             get
             {
-                if (_command == null) _command = new IdentityResult();
+                if (_command == null) _command = new IdentityResultProtocol();
                 return _command;
             }
         }

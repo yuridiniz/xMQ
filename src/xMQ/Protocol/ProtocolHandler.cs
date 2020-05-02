@@ -11,13 +11,13 @@ namespace xMQ.Protocol
     /// </summary>
     public class ProtocolHandler
     {
-        internal Dictionary<byte, ProtocolCommand> SupportedProtocol { get; } = new Dictionary<byte, ProtocolCommand>();
+        internal Dictionary<int, ProtocolCommand> SupportedProtocol { get; } = new Dictionary<int, ProtocolCommand>();
 
         internal void HandleMessage(PairSocket me, PairSocket remote, Envelope envelope)
         {
             envelope.Move(0);
 
-            var code = envelope.ReadNext<byte>();
+            var code = envelope.ReadNext<int>();
 
             if (SupportedProtocol.ContainsKey(code))
                 SupportedProtocol[code].HandleMessage(me, remote, envelope);

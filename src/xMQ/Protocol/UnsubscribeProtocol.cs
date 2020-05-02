@@ -5,18 +5,18 @@ using xMQ.PubSubProtocol;
 
 namespace xMQ.Protocol
 {
-    internal class Unsubscribe : ProtocolCommand
+    internal class UnsubscribeProtocol : ProtocolCommand
     {
-        private Unsubscribe()
+        private UnsubscribeProtocol()
         {
         }
 
-        private static Unsubscribe _command;
-        public static Unsubscribe Command
+        private static UnsubscribeProtocol _command;
+        public static UnsubscribeProtocol Command
         {
             get
             {
-                if (_command == null) _command = new Unsubscribe();
+                if (_command == null) _command = new UnsubscribeProtocol();
                 return _command;
             }
         }
