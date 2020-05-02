@@ -22,6 +22,7 @@ namespace xMQ.SocketsType
         public Uri UriAddress { get; }
 
         public SocketProtocolController ConnectionController { get; }
+        public List<Socket> SocketsSelector { get; private set; } = new List<Socket>();
 
         public TcpSocket()
         {
@@ -101,20 +102,19 @@ namespace xMQ.SocketsType
 
         private void Listen()
         {
-            var delay = (int)TimeSpan.FromSeconds(1).TotalMilliseconds * 1000;
-
             while (ServerRunning)
             {
-                if (socket.Poll(delay, SelectMode.SelectRead))
+                if (socket.Poll(-1, SelectMode.SelectRead))
                 {
                     var clientSocket = socket.Accept();
+                    clients.Add(clientSocket);
+
                     var tcpClient = new TcpSocket(clientSocket);
 
                     SocketMapper.Mapper(clientSocket, tcpClient);
 
                     ConnectionController?.HandleConnection(tcpClient);
 
-                    clients.Add(clientSocket);
                     resetEvent.Set();
 
                 }
@@ -133,14 +133,29 @@ namespace xMQ.SocketsType
                 if (clients.Count == 0)
                     resetEvent.WaitOne(-1);
 
-                var socketSelector = new List<Socket>(clients);
-                Socket.Select(socketSelector, null, null, -1);
+                SocketsSelector.Clear();
+                SocketsSelector.AddRange(clients);
 
-                for (var i = 0; i < socketSelector.Count; i++)
+                try
                 {
-                    var socketSpeaker = socketSelector[i];
-                    ConnectionController?.HandleMesage(SocketMapper.GetISocket(socketSpeaker));
+                    var socketSelector = new List<Socket>(clients);
+                    Socket.Select(SocketsSelector, null, null, 25000);
+
+                    for (var i = 0; i < SocketsSelector.Count; i++)
+                    {
+                        var socketSpeaker = SocketsSelector[i];
+                        var bytes = ConnectionController?.HandleMesage(SocketMapper.GetISocket(socketSpeaker));
+                        if (bytes == 0)
+                        {
+                            SocketMapper.RemoveISocketMapper(socketSpeaker);
+                            clients.Remove(socketSpeaker);
+                        }
+                    }
+                } catch (Exception ex)
+                {
+
                 }
+               
             }
 
             while (ClientRunning)
@@ -152,7 +167,6 @@ namespace xMQ.SocketsType
 
             }
         }
-
 
         public bool Send(byte[] msg)
         {

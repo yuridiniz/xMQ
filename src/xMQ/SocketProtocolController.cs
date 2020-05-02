@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net.Sockets;
 using System.Text;
 using xMQ.SocketsType;
 
@@ -8,6 +9,8 @@ namespace xMQ
     public abstract class SocketProtocolController
     {
         protected ISocket socket;
+        private Uri serverUri;
+        private Uri pairAddressUri;
 
         protected Uri ValidateAddress(string serverAddress)
         {
@@ -52,7 +55,7 @@ namespace xMQ
 
         protected virtual bool Bind(string serverAddress, bool silence)
         {
-            Uri serverUri = ValidateAddress(serverAddress);
+            serverUri = ValidateAddress(serverAddress);
             var _socket = GetSocketConnectionProtocol(serverUri);
 
             try
@@ -76,7 +79,7 @@ namespace xMQ
 
         protected virtual bool Connect(string pairAddress, int timeout, bool silence)
         {
-            Uri pairAddressUri = ValidateAddress(pairAddress);
+            pairAddressUri = ValidateAddress(pairAddress);
             var _socket = GetSocketConnectionProtocol(pairAddressUri);
 
             try
@@ -98,9 +101,46 @@ namespace xMQ
             }
         }
 
-        internal void HandleMesage(ISocket remote)
+        public virtual bool TryReconnect(int timeout = 1000) => Reconnect(timeout, true);
+        public virtual void Reconnect(int timeout = 1000) => Reconnect(timeout, false);
+
+        protected virtual bool Reconnect(int timeout, bool silence)
         {
-            OnRemoteMessage(remote);
+            socket?.Close();
+            socket = null;
+
+            if (pairAddressUri != null)
+                return Connect(pairAddressUri.ToString(), timeout, silence);
+            else if(serverUri != null)
+                return Bind(pairAddressUri.ToString(), silence);
+
+            if (!silence)
+                throw new Exception("Nenhuma conexão foi iniciada para ser restabelecida");
+
+            return false;
+        }
+
+        public bool Close()
+        {
+            try
+            {
+                socket?.Close();
+                socket?.Dispose();
+                socket = null;
+
+                return true;
+            }
+            catch (SocketException)
+            {
+                socket?.Dispose();
+                socket = null;
+                return false;
+            }
+        }
+
+        internal int HandleMesage(ISocket remote)
+        {
+            return OnRemoteMessage(remote);
         }
 
         internal void HandleConnection(ISocket remote)
@@ -113,7 +153,7 @@ namespace xMQ
             OnError(remote);
         }
 
-        protected abstract void OnRemoteMessage(ISocket remote);
+        protected abstract int OnRemoteMessage(ISocket remote);
 
         protected abstract void OnRemoteConnected(ISocket remote);
 

@@ -125,6 +125,7 @@ namespace xMQ
 
             try
             {
+                SendConnectionIdentification();
                 InitProtocolJobs();
                 return true;
             }
@@ -306,27 +307,6 @@ namespace xMQ
             return pairSocket;
         }
 
-        public bool Close()
-        {
-            if (socket == null)
-                throw new NotSupportedException("There is no connection established, use the Connect() or Bind() method to initiate a connection");
-
-            try
-            {
-                socket.Close();
-                socket.Dispose();
-                socket = null;
-
-                return true;
-            }
-            catch (SocketException)
-            {
-                socket.Dispose();
-                socket = null;
-                return false;
-            }
-        }
-
         public void AddProtocolCommand(ExtendableProtocolCommand customProtocol)
         {
             var nextCode = protocolHandler.SupportedProtocol.Keys.Max() + 1;
@@ -338,7 +318,7 @@ namespace xMQ
             protocolHandler.SupportedProtocol.Add(customProtocol.CODE, customProtocol);
         }
 
-        protected override void OnRemoteMessage(ISocket remote)
+        protected override int OnRemoteMessage(ISocket remote)
         {
             PairSocket remotePair = remote != null ? WrappedSocketsMap[remote] : this;
 
@@ -347,11 +327,13 @@ namespace xMQ
             if (envelope == null)
             {
                 OnClientDisconnect?.Invoke(remotePair);
-                Close();
+                remotePair.Close();
+                return 0;
             }
             else
             {
                 protocolHandler.HandleMessage(this, remotePair, envelope);
+                return envelope.Length;
             }
         }
 

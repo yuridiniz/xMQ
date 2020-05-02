@@ -49,7 +49,9 @@ namespace xMQ
                 return receivedData;
 
             //Caso nao, ele deve possua uma mensagem e bytes de cabecalho (envelope)
-            senderBuffer.AddRange(messageData.ToByteArray(false));
+            if(messageData != null)
+                senderBuffer.AddRange(messageData.ToByteArray(false));
+
             return base.ToByteArray();
         }
 

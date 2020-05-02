@@ -27,7 +27,7 @@ namespace xMQ.Protocol
             SupportedProtocol.Add(ReplyCommand.CODE, new ReplyCommand());
             SupportedProtocol.Add(PublishCommand.CODE, new PublishCommand());
             SupportedProtocol.Add(MsgPublishedCommand.CODE, new MsgPublishedCommand());
-            SupportedProtocol.Add(SubscribeCommand.CODE, new PublishCommand());
+            SupportedProtocol.Add(SubscribeCommand.CODE, new SubscribeCommand());
         }
 
         internal void HandleMessage(PairSocket me, PairSocket remote, Envelope envelope)

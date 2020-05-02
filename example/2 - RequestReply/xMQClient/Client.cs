@@ -13,6 +13,8 @@ namespace xMQExample
 
         static void Main(string[] args)
         {
+            Console.Title = "Client";
+
             var client = new Client();
             client.Start();
             
@@ -31,9 +33,20 @@ namespace xMQExample
                     var msg = new Message(1, "Hello Server :)");
                     pairSocket.Send(msg);
 
+                    pairSocket.Subscribe("connecteds", PubSubQueueLostType.LastMessage);
+                    pairSocket.Publish("connecteds", new Message(0, "Chegando ae na area " + pairSocket.ConnectionId));
                     // Sleep apenas para que o Console não fique com mensagens misturadas e atrapalhe o entendimento do exemplo
                     // Em um cenário real, não precisaria de qualquer tipo de delay
-                    Thread.Sleep(500); 
+                    Thread.Sleep(500);
+
+                    //pairSocket.Close();
+
+                    //var _success = false;
+                    //while(!_success)
+                    //{
+                    //    Thread.Sleep(10000);
+                    //    success = pairSocket.TryReconnect();
+                    //}
 
                     DoCommunication();
 
@@ -70,6 +83,7 @@ namespace xMQExample
                 uint opCode;
                 if(uint.TryParse(operation, out opCode))
                 {
+                    pairSocket.TryReconnect(5000);
                     Console.Write("> Mensagem (string): ");
                     var txtMessage = Console.ReadLine();
 
@@ -99,6 +113,7 @@ namespace xMQExample
                 }
                 else
                 {
+                    pairSocket.Close();
                     Console.WriteLine("> Operação não é um valor válido, informe um uint válido");
                 }
             }

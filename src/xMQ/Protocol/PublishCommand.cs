@@ -26,15 +26,20 @@ namespace xMQ.Protocol
             var senderDate = DateConverter.ConvertToUnixTimestamp(DateTime.Now);
 
             var queueEnvelop = new Envelope(envelop.GetMessage());
+            queueEnvelop.Append(MsgPublishedCommand.CODE);
             queueEnvelop.Append(queue);
             queueEnvelop.Append((byte)PubSubQueueLostType.None);
 
             foreach (var item in pubSubQueue.GetClients())
             {
+                if (item.PairSocket == remote)
+                    continue;
+
                 var success = item.PairSocket.Socket.Send(queueEnvelop.ToByteArray());
                 if (!success && item.LostType == PubSubQueueLostType.Persitent)
                 {
                     var droppedEnvelop = new Envelope(envelop.GetMessage());
+                    droppedEnvelop.Append(MsgPublishedCommand.CODE);
                     droppedEnvelop.Append(queue);
                     droppedEnvelop.Append((byte)PubSubQueueLostType.Persitent);
                     droppedEnvelop.Append(senderDate);
@@ -44,6 +49,7 @@ namespace xMQ.Protocol
             }
 
             var lastMsg = new Envelope(envelop.GetMessage());
+            queueEnvelop.Append(MsgPublishedCommand.CODE);
             queueEnvelop.Append(queue);
             queueEnvelop.Append((byte)PubSubQueueLostType.LastMessage);
             queueEnvelop.Append(senderDate);
